@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatCurrency } from "@/src/frontend/lib/format";
-import { siteAssets } from "@/lib/mock-data";
+import { siteAssets } from "@/src/frontend/assets";
 
 const roomTypes = ["Single Bed", "Double Bed", "Family Suite", "Luxury Room"];
 const priceOptions = [

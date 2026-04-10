@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { siteAssets } from "@/lib/mock-data";
+import { siteAssets } from "@/src/frontend/assets";
 
 const footerGroups = [
   {

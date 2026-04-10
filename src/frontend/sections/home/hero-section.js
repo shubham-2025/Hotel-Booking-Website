@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { featuredCities, heroImage } from "@/lib/mock-data";
+import { heroImage } from "@/src/frontend/assets";
+import { featuredCities } from "@/src/frontend/content/demo/site-demo-data";
 
 export function HeroSection() {
   const router = useRouter();

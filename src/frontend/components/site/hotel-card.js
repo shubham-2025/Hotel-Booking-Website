@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatCurrency } from "@/src/frontend/lib/format";
-import { siteAssets } from "@/lib/mock-data";
+import { siteAssets } from "@/src/frontend/assets";
 
 export function HotelCard({ room, featuredLabel = "Best Seller" }) {
   return (

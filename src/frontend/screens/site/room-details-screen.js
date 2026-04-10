@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { BookingInquiryForm } from "@/src/frontend/features/booking/booking-inquiry-form.client";
 import { SectionHeading } from "@/src/frontend/components/shared/section-heading";
 import { formatCurrency } from "@/src/frontend/lib/format";
+import { siteAssets } from "@/src/frontend/assets";
+import { roomHighlights } from "@/src/frontend/content/demo/site-demo-data";
 import { getRoomById } from "@/lib/data";
-import { roomHighlights, siteAssets } from "@/lib/mock-data";
 
 export async function RoomDetailsScreen({ params }) {
   const { id } = await params;

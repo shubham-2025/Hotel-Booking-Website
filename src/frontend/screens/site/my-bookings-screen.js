@@ -1,7 +1,7 @@
 import { SectionHeading } from "@/src/frontend/components/shared/section-heading";
 import { formatCurrency, formatDate } from "@/src/frontend/lib/format";
+import { siteAssets } from "@/src/frontend/assets";
 import { getBookings } from "@/lib/data";
-import { siteAssets } from "@/lib/mock-data";
 
 export async function MyBookingsScreen() {
   const bookings = await getBookings();

@@ -3,13 +3,13 @@ import { HeroSection } from "@/src/frontend/sections/home/hero-section";
 import { HotelCard } from "@/src/frontend/components/site/hotel-card";
 import { NewsletterForm } from "@/src/frontend/features/newsletter/newsletter-form.client";
 import { SectionHeading } from "@/src/frontend/components/shared/section-heading";
+import { siteAssets } from "@/src/frontend/assets";
 import {
   exclusiveOffers,
   roomHighlights,
   rooms,
-  siteAssets,
   testimonials,
-} from "@/lib/mock-data";
+} from "@/src/frontend/content/demo/site-demo-data";
 
 export function HomeScreen() {
   return (

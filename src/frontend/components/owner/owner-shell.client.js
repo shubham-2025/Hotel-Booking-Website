@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ownerNavigation, siteAssets } from "@/lib/mock-data";
+import { siteAssets } from "@/src/frontend/assets";
+import { ownerNavigation } from "@/src/frontend/content/navigation/owner-navigation";
 
 export function OwnerShell({ children }) {
   const pathname = usePathname();

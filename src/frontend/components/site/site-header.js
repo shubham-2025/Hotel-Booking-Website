@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { siteAssets } from "@/lib/mock-data";
+import { siteAssets } from "@/src/frontend/assets";
 
 const navigation = [
   { label: "Home", href: "/" },
