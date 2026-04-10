@@ -1,54 +1,70 @@
-# Hotel Booking Website
+# QuickStay Migration
 
-A full-stack hotel booking platform built with React JS and Tailwind CSS, offering a seamless experience for users to find and book accommodations, and for hotel partners to manage their listings.
+This repository is being migrated from a frontend-only Vite + React hotel booking UI into a full-stack Next.js application.
 
-## Overview
+## Current Stack
 
-This project delivers a comprehensive hotel booking experience through a modern and responsive web application. Travelers can easily search for hotels based on location, dates, and guests, browse detailed listings, view room options, and complete the booking process.
+- Next.js App Router
+- React 19
+- Tailwind CSS 4
+- Supabase client foundations
+- Resend email foundations
+- Vercel-ready deployment flow
 
-Key features include:
+## What Is Already Done
 
-* User-Friendly Interface: Intuitive design powered by React JS for a dynamic and engaging experience.
-* Rapid Styling: Utilizing Tailwind CSS for efficient and consistent styling.
-* Hotel Search & Browsing: Easily find hotels based on various criteria with detailed information and images.
-* Room Options: View available room types and their specific details.
-* Booking Management: Streamlined process for making and managing reservations.
-* Hotel Partner Signup: Allows hotel owners to register and list their properties.
-* Admin Panel for Partners: Dedicated interface for managing hotel listings, availability, and bookings.
-* Secure Authentication: Implemented using Clerk for robust user authentication and management (login, registration, profile).
+- Public pages migrated into Next.js:
+  - home
+  - rooms listing
+  - room details
+  - my bookings
+- Owner pages migrated into Next.js:
+  - dashboard
+  - add room
+  - list room
+- Initial responsive redesign for mobile and tablet
+- API route starters:
+  - `/api/newsletter`
+  - `/api/booking-inquiry`
+- Initial Supabase schema migration:
+  - `supabase/migrations/20260410_initial_schema.sql`
 
-## Technologies Used
+## Important Folders
 
-* Front-end:
-    * React JS
-    * Tailwind CSS
-    * Clerk (for authentication UI components)
-* Back-end:
-    *  Node.js with Express
+- `app/` - Next.js routes and API handlers
+- `components/` - new shared UI and owner components
+- `lib/` - data helpers, Supabase clients, Resend client, mock data
+- `docs/PROJECT_ROADMAP.md` - audit plus structured to-do list
+- `legacy-vite/` - archived old Vite-only UI files kept for reference
+- `src/assets/` - existing image and dummy asset source used by the new app
 
-## Getting Started
+## Local Setup
 
-To run this project locally, follow these steps:
+1. Install dependencies:
 
-1.  Clone the repository:
-    
-2.  Navigate to the project directory:
-    
-3.  Install front-end dependencies:
-    
-4.  Install back-end dependencies:
-    
-5.  Set up environment variables:
-    * Create `.env` files in both the `client` and `server` directories (or your respective front-end/back-end directories).
-    * Configure necessary environment variables such as API keys, database connection strings, and Clerk API keys. Refer to the project's configuration files for required 
-      variables.
-      
-6.  Run the front-end
-    
-7.  Run the back-end
-   
+```bash
+npm install
+```
 
-## Contact
+2. Copy environment variables from `.env.example` into `.env.local`.
 
-Shubham Mahapure
-shubhammahapure7@gmail.com
+3. Run the app:
+
+```bash
+npm run dev
+```
+
+4. Build production output:
+
+```bash
+npm run build
+```
+
+## Next Recommended Steps
+
+1. Configure Supabase project credentials in `.env.local`.
+2. Apply the SQL migration in Supabase.
+3. Replace mock data reads with live Supabase queries.
+4. Add Supabase Auth for guest and owner roles.
+5. Wire owner room creation to Storage uploads and inserts.
+6. Configure Resend sender domain and booking email templates.

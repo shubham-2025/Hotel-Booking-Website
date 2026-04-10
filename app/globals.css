@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-playfair);
+  --color-surface: #f7f4ef;
+  --color-card: #fffdfa;
+  --color-ink: #12243b;
+  --color-muted: #5c6c82;
+  --color-line: #d9e0ea;
+  --color-accent: #c86f31;
+  --color-accent-soft: #f6dfcf;
+  --color-accent-strong: #7c3b11;
+  --color-highlight: #1e4f8f;
+  --shadow-soft: 0 20px 45px rgba(18, 36, 59, 0.08);
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-surface);
+}
+
+body {
+  font-family: var(--font-sans), sans-serif;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+.page-shell {
+  width: min(100%, 1200px);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-shell {
+    padding-inline: 2rem;
+  }
+}
+
+.glass-card {
+  background: rgba(255, 253, 250, 0.84);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-soft);
+}
+
+.section-space {
+  padding-block: 4.5rem;
+}
+
+.gradient-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-frame::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at top left, rgba(200, 111, 49, 0.16), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(30, 79, 143, 0.14), transparent 40%);
+  pointer-events: none;
+}
