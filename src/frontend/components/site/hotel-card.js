@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@/src/frontend/lib/format";
 import { siteAssets } from "@/lib/mock-data";
 
 export function HotelCard({ room, featuredLabel = "Best Seller" }) {

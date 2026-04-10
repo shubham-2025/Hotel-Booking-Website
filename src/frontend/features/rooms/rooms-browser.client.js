@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@/src/frontend/lib/format";
 import { siteAssets } from "@/lib/mock-data";
 
 const roomTypes = ["Single Bed", "Double Bed", "Family Suite", "Luxury Room"];

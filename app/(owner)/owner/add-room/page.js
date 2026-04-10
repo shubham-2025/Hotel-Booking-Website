@@ -1,5 +1,5 @@
-import { AddRoomPanel } from "@/components/owner/add-room-panel";
+import { OwnerAddRoomScreen } from "@/src/frontend/screens/owner/owner-add-room-screen";
 
 export default function OwnerAddRoomPage() {
-  return <AddRoomPanel />;
+  return <OwnerAddRoomScreen />;
 }
