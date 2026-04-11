@@ -41,12 +41,10 @@ export function BookingInquiryForm({ room }) {
         }),
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
         setFeedback({
           type: "error",
-          message: result.message || "Unable to submit your inquiry right now.",
+          message: "We could not send your request right now. Please try again shortly.",
         });
         return;
       }
@@ -63,8 +61,7 @@ export function BookingInquiryForm({ room }) {
       setFeedback({
         type: "success",
         message:
-          result.message ||
-          "Inquiry received. The backend pipeline is now ready for Supabase + Resend.",
+          "Your request has been sent. The hotel can now review your preferred dates and details.",
       });
     });
   }
@@ -72,20 +69,21 @@ export function BookingInquiryForm({ room }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-[32px] border border-[var(--color-line)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-soft)] sm:p-6"
+      className="surface-card rounded-[32px] p-5 sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Booking inquiry
-          </p>
-          <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-            Check availability with real submission hooks
+          <p className="eyebrow-label">Request this stay</p>
+          <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
+            Check availability in a few quick steps
           </h2>
         </div>
-        <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-strong)]">
-          API route ready
-        </span>
+        <span className="pill-muted">Replies usually within a day</span>
+      </div>
+
+      <div className="mt-4 rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+        Share your dates, guest count, and any special notes so the hotel can
+        respond with the right room details.
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -95,10 +93,11 @@ export function BookingInquiryForm({ room }) {
           </span>
           <input
             required
+            autoComplete="name"
             value={formState.name}
             onChange={(event) => updateField("name", event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
-            placeholder="Shubham Mahapure"
+            className="field-input"
+            placeholder="Your full name"
           />
         </label>
 
@@ -109,9 +108,10 @@ export function BookingInquiryForm({ room }) {
           <input
             type="email"
             required
+            autoComplete="email"
             value={formState.email}
             onChange={(event) => updateField("email", event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            className="field-input"
             placeholder="you@example.com"
           />
         </label>
@@ -121,9 +121,11 @@ export function BookingInquiryForm({ room }) {
             Phone
           </span>
           <input
+            type="tel"
+            autoComplete="tel"
             value={formState.phone}
             onChange={(event) => updateField("phone", event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            className="field-input"
             placeholder="+91 98765 43210"
           />
         </label>
@@ -139,7 +141,7 @@ export function BookingInquiryForm({ room }) {
             required
             value={formState.guests}
             onChange={(event) => updateField("guests", event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            className="field-input"
           />
         </label>
 
@@ -152,7 +154,7 @@ export function BookingInquiryForm({ room }) {
             required
             value={formState.checkInDate}
             onChange={(event) => updateField("checkInDate", event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            className="field-input"
           />
         </label>
 
@@ -167,7 +169,7 @@ export function BookingInquiryForm({ room }) {
             onChange={(event) =>
               updateField("checkOutDate", event.target.value)
             }
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            className="field-input"
           />
         </label>
       </div>
@@ -180,25 +182,25 @@ export function BookingInquiryForm({ room }) {
           rows="4"
           value={formState.message}
           onChange={(event) => updateField("message", event.target.value)}
-          className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
-          placeholder="Tell us about your arrival time, special requests, or room preference."
+          className="field-textarea"
+          placeholder="Mention arrival time, bed preference, accessibility needs, or any special request."
         />
       </label>
 
       <button
         type="submit"
         disabled={isPending}
-        className="mt-6 w-full rounded-2xl bg-[var(--color-ink)] px-5 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+        className="button-accent mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Sending inquiry..." : "Submit inquiry"}
+        {isPending ? "Sending request..." : "Send booking request"}
       </button>
 
       {feedback ? (
         <p
-          className={`mt-4 text-sm ${
+          className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
             feedback.type === "success"
-              ? "text-emerald-700"
-              : "text-rose-700"
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+              : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
           }`}
         >
           {feedback.message}

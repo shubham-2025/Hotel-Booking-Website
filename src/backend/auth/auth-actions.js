@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./supabase-server-client";
+import { env } from "./../config/env";
 import { getSafeRedirectTarget } from "./get-safe-redirect-target";
 
 function buildRedirect(pathname, params = {}) {
@@ -79,4 +80,32 @@ export async function signUpAction(formData) {
   }
 
   redirect(buildRedirect("/sign-in", { notice: "check_email" }));
+}
+
+export async function continueWithGoogleAction(formData) {
+  const next = getSafeRedirectTarget(String(formData.get("next") || ""), "/");
+  const intent = String(formData.get("intent") || "sign-in");
+  const returnPath = intent === "sign-up" ? "/sign-up" : "/sign-in";
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    redirect(buildRedirect(returnPath, { error: "auth_unavailable", next }));
+  }
+
+  const callbackUrl = new URL("/auth/callback", env.siteUrl);
+  callbackUrl.searchParams.set("next", next);
+  callbackUrl.searchParams.set("intent", intent);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callbackUrl.toString(),
+    },
+  });
+
+  if (error || !data?.url) {
+    redirect(buildRedirect(returnPath, { error: "oauth_failed", next }));
+  }
+
+  redirect(data.url);
 }

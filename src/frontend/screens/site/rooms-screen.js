@@ -11,9 +11,9 @@ export async function RoomsScreen({ searchParams }) {
     <section className="section-space">
       <div className="page-shell">
         <SectionHeading
-          eyebrow="Room discovery"
-          title="Browse the current inventory with cleaner responsive filters"
-          description="This route now works as a real Next.js page instead of a client-side SPA view. The filter panel collapses on mobile and the card layout no longer depends on rigid widths."
+          eyebrow="Find your stay"
+          title="Browse rooms with filters that stay easy to use on every screen"
+          description="Compare price, room type, and location without losing the clean reading flow that makes travel decisions feel simpler."
           align="left"
         />
 

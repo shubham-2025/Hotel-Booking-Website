@@ -6,32 +6,42 @@ import {
 } from "../../assets";
 import { slugify } from "../../lib/format";
 
-export const featuredCities = ["Dubai", "Singapore", "New York", "London"];
+export const featuredCities = [
+  "New York",
+  "Singapore",
+  "Dubai",
+  "London",
+];
 
 export const exclusiveOffers = [
   {
     _id: 1,
-    title: "Summer Escape Package",
-    description: "Enjoy a complimentary night and daily breakfast",
+    title: "Early Escape Rate",
+    description:
+      "Lock in your plans 30 days ahead and enjoy breakfast plus up to 25% savings.",
+    note: "Best for early planners who want simple value before peak dates fill up.",
     priceOff: 25,
-    expiryDate: "Aug 31",
+    expiryDate: "May 31",
     image: offerImages.exclusiveOfferCardImg1,
   },
   {
     _id: 2,
-    title: "Romantic Getaway",
-    description: "Special couples package including spa treatment",
+    title: "Weekend City Break",
+    description:
+      "Two-night stays with late checkout and a welcome amenity for couples or friends.",
+    note: "Built for quick city resets with fewer decisions and more convenience included.",
     priceOff: 20,
-    expiryDate: "Sep 20",
+    expiryDate: "Jun 15",
     image: offerImages.exclusiveOfferCardImg2,
   },
   {
     _id: 3,
-    title: "Luxury Retreat",
+    title: "Longer Stay, Better Value",
     description:
-      "Book 60 days in advance and save on your stay at any of our luxury properties worldwide.",
+      "Stay four nights or more and unlock premium rates across our most-booked rooms.",
+    note: "A stronger fit for longer work trips, flexible itineraries, and slower stays.",
     priceOff: 30,
-    expiryDate: "Sep 25",
+    expiryDate: "Jun 28",
     image: offerImages.exclusiveOfferCardImg3,
   },
 ];
@@ -45,7 +55,7 @@ export const testimonials = [
       "https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=200",
     rating: 5,
     review:
-      "I've used many booking platforms before, but none compare to the personalized experience and attention to detail that QuickStay provides.",
+      "QuickStay made it easy to compare rooms, check the details that mattered, and send a request without jumping through hoops.",
   },
   {
     id: 2,
@@ -53,9 +63,9 @@ export const testimonials = [
     address: "New York, USA",
     image:
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200",
-    rating: 4,
+    rating: 5,
     review:
-      "QuickStay exceeded my expectations. The booking process was seamless, and the hotels were absolutely top-notch. Highly recommended!",
+      "The layout feels clean, the prices are clear, and the rooms looked exactly like the photos when I arrived.",
   },
   {
     id: 3,
@@ -65,52 +75,56 @@ export const testimonials = [
       "https://images.unsplash.com/photo-1701615004837-40d8573b6652?q=80&w=200",
     rating: 5,
     review:
-      "Amazing service! I always find the best luxury accommodations through QuickStay. Their recommendations never disappoint!",
+      "I loved how fast the inquiry flow was. It felt polished on mobile and gave me confidence before I booked.",
   },
 ];
 
 export const roomHighlights = [
   {
     icon: siteAssets.homeIcon,
-    title: "Clean & Safe Stay",
-    description: "A well-maintained and hygienic space just for you.",
+    title: "Comfort-first rooms",
+    description:
+      "Thoughtfully arranged spaces with the essentials guests actually notice.",
   },
   {
     icon: siteAssets.badgeIcon,
-    title: "Enhanced Cleaning",
-    description: "This host follows Staybnb's strict cleaning standards.",
+    title: "Clear pricing",
+    description:
+      "Nightly rates, amenities, and room types are easy to scan before you commit.",
   },
   {
     icon: siteAssets.locationFilledIcon,
-    title: "Excellent Location",
-    description: "90% of guests rated the location 5 stars.",
+    title: "Strong locations",
+    description:
+      "Stay close to neighborhoods, dining, and business hubs without the guesswork.",
   },
   {
     icon: siteAssets.heartIcon,
-    title: "Smooth Check-In",
-    description: "100% of guests gave check-in a 5-star rating.",
+    title: "Smooth check-in flow",
+    description:
+      "Send a request quickly and continue the conversation with confidence afterward.",
   },
 ];
 
 export const currentUser = {
-  _id: "user_2unqyL4diJFP1E3pIBnasc7w8hP",
-  username: "Great Stack",
-  fullName: "Great Stack",
-  email: "user.greatstack@gmail.com",
+  _id: "user_owner_demo_01",
+  username: "mayarao",
+  fullName: "Maya Rao",
+  email: "maya.rao@example.com",
   image: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6",
-  role: "hotelOwner",
+  role: "owner",
   createdAt: "2025-03-25T09:29:16.367Z",
   updatedAt: "2025-04-10T06:34:48.719Z",
   __v: 1,
-  recentSearchedCities: ["New York"],
+  recentSearchedCities: ["New York", "Singapore"],
 };
 
 export const hotelRecord = {
   _id: "67f76393197ac559e4089b72",
-  name: "Urbanza Suites",
-  slug: "urbanza-suites",
-  address: "Main Road  123 Street , 23 Colony",
-  contact: "+0123456789",
+  name: "Harborlight Suites",
+  slug: "harborlight-suites",
+  address: "125 Hudson Lane, SoHo, New York",
+  contact: "+1 (212) 555-0186",
   owner: currentUser,
   city: "New York",
   createdAt: "2025-04-10T06:22:11.663Z",
@@ -121,7 +135,7 @@ export const hotelRecord = {
 const roomSeeds = [
   {
     _id: "67f7647c197ac559e4089b96",
-    roomType: "Double Bed",
+    roomType: "Luxury Room",
     pricePerNight: 399,
     amenities: ["Room Service", "Mountain View", "Pool Access"],
     images: [
@@ -135,7 +149,7 @@ const roomSeeds = [
     _id: "67f76452197ac559e4089b8e",
     roomType: "Double Bed",
     pricePerNight: 299,
-    amenities: ["Room Service", "Mountain View", "Pool Access"],
+    amenities: ["Room Service", "Free WiFi", "Pool Access"],
     images: [
       roomImageGallery.roomImg2,
       roomImageGallery.roomImg3,
@@ -145,7 +159,7 @@ const roomSeeds = [
   },
   {
     _id: "67f76406197ac559e4089b82",
-    roomType: "Double Bed",
+    roomType: "Family Suite",
     pricePerNight: 249,
     amenities: ["Free WiFi", "Free Breakfast", "Room Service"],
     images: [

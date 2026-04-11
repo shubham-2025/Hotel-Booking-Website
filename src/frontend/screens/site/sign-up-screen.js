@@ -1,10 +1,14 @@
-import { signUpAction } from "@/src/backend/auth/auth-actions";
+import {
+  continueWithGoogleAction,
+  signUpAction,
+} from "@/src/backend/auth/auth-actions";
 import { AuthPanel } from "@/src/frontend/features/auth/auth-panel";
 
 const errorMessages = {
-  auth_unavailable: "Auth is not configured yet. Add Supabase env vars to enable sign up.",
+  auth_unavailable: "Account creation is temporarily unavailable. Please try again shortly.",
   missing_fields: "Please complete the required sign up fields.",
   signup_failed: "We could not create your account right now.",
+  oauth_failed: "Google sign up could not be completed. Please try again.",
 };
 
 function getStatus(errorCode) {
@@ -24,13 +28,50 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
   return (
     <AuthPanel
       eyebrow="Create account"
-      title="Start with a minimal account"
-      description="Sign up with email and password. New accounts default to the guest role until owner/admin access is granted in profiles."
+      title="Create your QuickStay account"
+      description="Set up a simple account so you can move faster through future booking and account-aware flows."
       status={status}
       footerPrompt="Already have an account?"
       footerLinkLabel="Sign in"
       footerLinkHref={next && next !== "/" ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"}
     >
+      <form action={continueWithGoogleAction}>
+        <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="intent" value="sign-up" />
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[var(--color-line)] bg-white px-5 py-3.5 text-sm font-semibold text-[var(--color-ink)] shadow-[0_10px_24px_rgba(18,36,59,0.06)] transition hover:bg-[var(--color-card-soft)]"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+            <path
+              fill="#EA4335"
+              d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 2.8 14.7 2 12 2 6.9 2 2.8 6.5 2.8 12s4.1 10 9.2 10c5.3 0 8.8-3.7 8.8-9 0-.6-.1-1.1-.2-1.6H12Z"
+            />
+            <path
+              fill="#34A853"
+              d="M3.9 7.3 7 9.5C7.9 7.6 9.8 6.2 12 6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 2.8 14.7 2 12 2 8.4 2 5.2 4.1 3.9 7.3Z"
+            />
+            <path
+              fill="#4A90E2"
+              d="M12 22c2.6 0 4.8-.8 6.4-2.3l-3-2.5c-.8.6-1.9 1-3.4 1-2.5 0-4.6-1.7-5.4-4.1l-3.1 2.4C4.8 19.8 8.1 22 12 22Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M6.6 14.1c-.2-.6-.4-1.3-.4-2.1s.1-1.4.4-2.1L3.5 7.5C2.9 8.8 2.6 10.3 2.6 12s.3 3.2.9 4.5l3.1-2.4Z"
+            />
+          </svg>
+          Continue with Google
+        </button>
+      </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-[var(--color-line)]" />
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted)]">
+          or continue with email
+        </span>
+        <div className="h-px flex-1 bg-[var(--color-line)]" />
+      </div>
+
       <form action={signUpAction} className="space-y-4">
         <input type="hidden" name="next" value={next} />
 
@@ -42,7 +83,8 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
             type="text"
             name="fullName"
             required
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            autoComplete="name"
+            className="field-input"
             placeholder="Your name"
           />
         </label>
@@ -55,7 +97,8 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
             type="email"
             name="email"
             required
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            autoComplete="email"
+            className="field-input"
             placeholder="you@example.com"
           />
         </label>
@@ -69,15 +112,13 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
             name="password"
             required
             minLength={6}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            autoComplete="new-password"
+            className="field-input"
             placeholder="Create a password"
           />
         </label>
 
-        <button
-          type="submit"
-          className="w-full rounded-2xl bg-[var(--color-ink)] px-5 py-4 text-sm font-semibold text-white hover:bg-[var(--color-highlight)]"
-        >
+        <button type="submit" className="button-primary w-full">
           Create account
         </button>
       </form>

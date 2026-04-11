@@ -1,14 +1,11 @@
-import { Outfit, Playfair_Display } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+const montserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-outfit",
-});
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-montserrat",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata = {
@@ -20,15 +17,13 @@ export const metadata = {
     template: "%s | QuickStay",
   },
   description:
-    "A hotel booking platform being migrated from a frontend-only React app into a full-stack Next.js + Supabase experience.",
+    "Discover thoughtfully selected stays with clear pricing, polished room details, and faster booking inquiries.",
+  themeColor: "#12243b",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="en"
-      className={`${outfit.variable} ${playfair.variable} h-full scroll-smooth`}
-    >
+    <html lang="en" className={`${montserrat.variable} h-full scroll-smooth`}>
       <body className="min-h-full bg-[var(--color-surface)] text-slate-950 antialiased">
         {children}
       </body>

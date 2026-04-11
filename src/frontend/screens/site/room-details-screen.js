@@ -6,6 +6,12 @@ import { siteAssets } from "@/src/frontend/assets";
 import { roomHighlights } from "@/src/frontend/content/demo/site-demo-data";
 import { getRoomById } from "@/lib/data";
 
+const requestAssurances = [
+  "Share your preferred dates and guest count in one quick form.",
+  "Use the notes field for arrival timing, twin-bed requests, or special needs.",
+  "The hotel can review your request and continue the conversation by email.",
+];
+
 export async function RoomDetailsScreen({ params }) {
   const { id } = await params;
   const room = await getRoomById(id);
@@ -26,9 +32,10 @@ export async function RoomDetailsScreen({ params }) {
               <h1 className="font-display text-4xl text-[var(--color-ink)] sm:text-5xl">
                 {room.hotel.name}
               </h1>
-              <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-strong)]">
+              <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-strong)]">
                 {room.roomType}
               </span>
+              <span className="pill-muted">4.8 guest rating</span>
             </div>
 
             <div className="mt-4 flex items-center gap-2 text-sm text-[var(--color-muted)]">
@@ -40,7 +47,7 @@ export async function RoomDetailsScreen({ params }) {
               <span>{room.hotel.address}</span>
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-[1.3fr_0.7fr]">
+            <div className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
               <img
                 src={room.images[0]}
                 alt={room.hotel.name}
@@ -59,7 +66,7 @@ export async function RoomDetailsScreen({ params }) {
               </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-[30px] border border-[var(--color-line)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-soft)]">
+            <div className="surface-card mt-8 flex flex-col gap-4 rounded-[30px] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
                   Price
@@ -76,7 +83,7 @@ export async function RoomDetailsScreen({ params }) {
                 {room.amenities.map((amenity) => (
                   <span
                     key={amenity}
-                    className="rounded-full bg-white px-3 py-2 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                    className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
                   >
                     {amenity}
                   </span>
@@ -87,8 +94,8 @@ export async function RoomDetailsScreen({ params }) {
             <div className="mt-10">
               <SectionHeading
                 eyebrow="Stay details"
-                title="What this room experience promises"
-                description="The current content still uses sample data, but this structure is ready to map cleanly to Supabase tables and route-level fetching."
+                title="A room page that keeps the essentials easy to compare"
+                description="The gallery, pricing, amenities, and request panel now work together with cleaner spacing and a more trustworthy reading flow."
                 align="left"
               />
 
@@ -96,7 +103,7 @@ export async function RoomDetailsScreen({ params }) {
                 {roomHighlights.map((item) => (
                   <div
                     key={item.title}
-                    className="rounded-[28px] border border-[var(--color-line)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-soft)]"
+                    className="surface-card motion-lift rounded-[28px] p-5"
                   >
                     <img src={item.icon} alt="" className="h-8 w-8" />
                     <p className="mt-4 text-lg font-semibold text-[var(--color-ink)]">
@@ -111,21 +118,24 @@ export async function RoomDetailsScreen({ params }) {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
             <BookingInquiryForm room={room} />
 
-            <div className="rounded-[32px] border border-[var(--color-line)] bg-white p-6 shadow-[var(--shadow-soft)]">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-                Owner note
-              </p>
-              <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-                Backend-ready booking capture
+            <div className="surface-card rounded-[32px] p-6">
+              <p className="eyebrow-label">Before you send</p>
+              <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
+                Keep your request simple and specific
               </h2>
-              <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
-                This page now includes a real inquiry form that can persist to
-                Supabase and notify the team through Resend once environment
-                variables are configured.
-              </p>
+              <div className="mt-5 space-y-3">
+                {requestAssurances.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

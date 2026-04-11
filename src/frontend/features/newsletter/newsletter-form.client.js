@@ -20,12 +20,10 @@ export function NewsletterForm() {
         body: JSON.stringify({ email }),
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
         setFeedback({
           type: "error",
-          message: result.message || "Unable to subscribe right now.",
+          message: "We could not add you right now. Please try again shortly.",
         });
         return;
       }
@@ -33,28 +31,42 @@ export function NewsletterForm() {
       setEmail("");
       setFeedback({
         type: "success",
-        message: result.message || "Subscription saved successfully.",
+        message: "You're on the list. Fresh stays and offers are on the way.",
       });
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/72">
+          QuickStay list
+        </p>
+        <h3 className="mt-3 font-display text-3xl text-white">
+          Join for fresh rooms, travel ideas, and limited-time offers
+        </h3>
+        <p className="mt-3 text-sm leading-7 text-white/76">
+          A simple email list for travelers who want better stay options
+          without the clutter.
+        </p>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <input
           type="email"
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
           placeholder="Enter your email"
-          className="min-h-13 flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 text-white outline-none placeholder:text-white/55 focus:border-white/45"
+          className="field-dark min-h-13 flex-1"
         />
         <button
           type="submit"
           disabled={isPending}
-          className="min-h-13 rounded-2xl bg-white px-5 text-sm font-semibold text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="button-accent min-h-13 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isPending ? "Saving..." : "Join newsletter"}
+          {isPending ? "Saving..." : "Join the list"}
         </button>
       </div>
       {feedback ? (

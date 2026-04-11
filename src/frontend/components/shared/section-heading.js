@@ -4,14 +4,14 @@ export function SectionHeading({ eyebrow, title, description, align = "center" }
       className={`max-w-3xl ${align === "left" ? "text-left" : "mx-auto text-center"}`}
     >
       {eyebrow ? (
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-strong)]">
+        <p className="eyebrow-label">
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)] sm:text-4xl">
+      <h2 className="mt-4 font-display text-3xl leading-tight text-[var(--color-ink)] sm:text-4xl lg:text-[2.8rem]">
         {title}
       </h2>
-      <p className="mt-4 text-base leading-7 text-[var(--color-muted)]">
+      <p className="mt-4 text-base leading-8 text-[var(--color-muted)] sm:text-[1.03rem]">
         {description}
       </p>
     </div>
