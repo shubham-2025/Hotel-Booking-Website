@@ -17,9 +17,15 @@
   - room search
   - room inquiry / availability
   - newsletter signup
-  - add-room owner form
 - Auth is not aligned with the target stack yet.
 - The app was not reliably mobile responsive because many screens depended on fixed widths, wide tables and SPA layout assumptions.
+
+### What is already improved since the audit
+
+- Owner/auth route protection is now active for the management area.
+- Owner-scoped hotel and room reads are now connected to authenticated Supabase data.
+- Owners can now bootstrap their first hotel record from the owner area.
+- Owners can now create draft rooms under their authenticated hotel context.
 
 ## 2. Target Stack
 
@@ -75,7 +81,8 @@
 
 ### Phase 5: Owner workflows
 
-- Connect add-room form to authenticated server actions or route handlers.
+- Hotel bootstrap/create flow is complete.
+- Authenticated draft room creation is complete.
 - Upload room images to Supabase Storage.
 - Add edit, archive and publish actions for rooms.
 

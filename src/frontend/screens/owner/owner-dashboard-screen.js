@@ -189,10 +189,15 @@ export async function OwnerDashboardScreen() {
             Your hotel is ready for its first room
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            The owner area is now correctly scoped to your account. The next
-            small product batch can focus on turning the existing add-room form
-            into a real authenticated room creation flow.
+            Your hotel is now ready for its first real room draft. Once you add
+            inventory here, the dashboard and inventory pages will start showing
+            live owner-scoped room counts instead of the empty state.
           </p>
+          <div className="mt-5">
+            <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
+              Add your first room
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-5">

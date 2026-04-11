@@ -32,7 +32,7 @@ export async function OwnerAddRoomScreen() {
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
           Room drafts should attach to a real hotel record. Set up the hotel
-          first, then come back here for room creation in the next batch.
+          first, then come back here to create your first room.
         </p>
 
         <div className="mt-8">
@@ -44,5 +44,5 @@ export async function OwnerAddRoomScreen() {
     );
   }
 
-  return <AddRoomPanel />;
+  return <AddRoomPanel hotel={hotelSetupData.primaryHotel} />;
 }

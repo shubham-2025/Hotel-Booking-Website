@@ -355,6 +355,62 @@ export async function createOwnerHotelRecord(payload) {
   };
 }
 
+export async function createOwnerRoomRecord(payload) {
+  const ownerHotelData = await getOwnerHotelContext();
+
+  if (ownerHotelData.status === "unavailable") {
+    return {
+      status: "unavailable",
+      profile: ownerHotelData.profile,
+      room: null,
+      hotel: null,
+      reason: ownerHotelData.reason,
+    };
+  }
+
+  if (ownerHotelData.status === "no_hotel") {
+    return {
+      status: "no_hotel",
+      profile: ownerHotelData.profile,
+      room: null,
+      hotel: null,
+      reason: "",
+    };
+  }
+
+  const { profile, supabase, primaryHotel } = ownerHotelData;
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .insert({
+      hotel_id: primaryHotel._id,
+      name: payload.name || null,
+      room_type: payload.roomType,
+      description: payload.description || null,
+      price_per_night: payload.pricePerNight,
+      guest_capacity: payload.guestCapacity,
+      bedroom_count: payload.bedroomCount,
+      bathroom_count: payload.bathroomCount,
+      amenities: payload.amenities,
+      image_urls: [],
+      is_active: false,
+    })
+    .select(OWNER_ROOM_COLUMNS)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    status: "created",
+    profile,
+    hotel: primaryHotel,
+    room: mapRoom(data, primaryHotel),
+    reason: "",
+  };
+}
+
 export async function getOwnerDashboardData() {
   try {
     return await getOwnerScopedInventory();

@@ -122,13 +122,12 @@ export async function OwnerListRoomScreen() {
             Your hotel is linked, but inventory is still empty
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This owner page is now using real account scope correctly. The next
-            product batch can safely connect the existing add-room form to real
-            authenticated inserts.
+            This owner page is now using real account scope correctly, and you
+            can add the first room for this hotel directly from the owner area.
           </p>
           <div className="mt-5">
-            <Link href="/owner/add-room" className="button-secondary min-h-11 px-5">
-              Review room draft form
+            <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
+              Add your first room
             </Link>
           </div>
         </div>

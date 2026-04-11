@@ -7,7 +7,7 @@ export const ownerNavigation = [
   {
     label: "Add Room",
     href: "/owner/add-room",
-    description: "Create listing forms and storage upload flow",
+    description: "Create draft room inventory for your hotel",
   },
   {
     label: "List Room",

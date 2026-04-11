@@ -29,11 +29,15 @@
 - Make changes in small, safe batches.
 - Prefer cleanup and refactors in narrowly scoped steps.
 - Do not mix unrelated structural, frontend, and backend changes in one batch unless necessary.
+- If workflow rules or development conventions change, update `AGENTS.md` in the same batch.
+- If a batch changes user flow or architecture, update the relevant files under `docs/`.
 
 ## Verification
 
 - Run `npm run lint` after each code batch.
 - Run `npm run build` after each code batch.
+- Mention the most important manual browser checks after each meaningful code batch.
+- Stop after each meaningful batch and wait for approval before starting the next batch.
 - If a batch is documentation-only, note that runtime checks were not needed.
 
 ## Compatibility Shims
