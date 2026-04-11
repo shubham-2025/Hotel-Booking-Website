@@ -42,9 +42,15 @@ function CloseIcon() {
   );
 }
 
-export function SiteHeader() {
+function isOwnerRole(role) {
+  return role === "owner" || role === "admin";
+}
+
+export function SiteHeader({ authState }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const canAccessOwner = isOwnerRole(authState?.role);
+  const ownerHref = canAccessOwner ? "/owner" : "/sign-in?next=%2Fowner";
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/40 bg-[rgba(247,244,239,0.82)] backdrop-blur-xl">
@@ -91,9 +97,44 @@ export function SiteHeader() {
           >
             Browse stays
           </Link>
+          {authState?.isAuthenticated ? (
+            <>
+              <div className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-right text-xs text-[var(--color-muted)]">
+                <p className="font-semibold text-[var(--color-ink)]">
+                  {authState.fullName}
+                </p>
+                <p className="uppercase tracking-[0.12em]">
+                  {authState.role || "guest"}
+                </p>
+              </div>
+              <form action="/auth/sign-out" method="post">
+                <button
+                  type="submit"
+                  className="rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:bg-white"
+                >
+                  Sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-medium text-[var(--color-ink)] hover:bg-white"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/sign-up"
+                className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-accent-strong)]"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
           <Link
-            href="/owner"
-            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-accent-strong)]"
+            href={ownerHref}
+            className="rounded-full bg-[var(--color-ink)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-highlight)]"
           >
             Owner dashboard
           </Link>
@@ -133,6 +174,52 @@ export function SiteHeader() {
                 </Link>
               );
             })}
+
+            {authState?.isAuthenticated ? (
+              <>
+                <div className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-[var(--color-line)]">
+                  <p className="font-semibold text-[var(--color-ink)]">
+                    {authState.fullName}
+                  </p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                    {authState.role || "guest"}
+                  </p>
+                </div>
+                <form action="/auth/sign-out" method="post">
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-[var(--color-ink)] px-4 py-3 text-sm font-semibold text-white"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/sign-up"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="rounded-2xl bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
+
+            <Link
+              href={ownerHref}
+              onClick={() => setIsMenuOpen(false)}
+              className="rounded-2xl bg-[var(--color-ink)] px-4 py-3 text-sm font-semibold text-white"
+            >
+              Owner dashboard
+            </Link>
           </div>
         </div>
       ) : null}
