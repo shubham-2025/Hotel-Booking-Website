@@ -53,6 +53,11 @@ export async function OwnerListRoomScreen() {
             owner/admin. Once that exists, this page will show only rooms that
             belong to that hotel scope.
           </p>
+          <div className="mt-5">
+            <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
+              Set up your hotel
+            </Link>
+          </div>
         </div>
       </div>
     );

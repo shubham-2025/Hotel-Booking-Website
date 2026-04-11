@@ -4,6 +4,13 @@ import { createSupabaseServerClient } from "@/src/backend/auth/supabase-server-c
 import { hasSupabasePublicEnv } from "@/src/backend/config/env";
 import { getFallbackRoomImages } from "@/src/backend/repositories/demo-fallback-repository";
 
+const OWNER_HOTEL_COLUMNS =
+  "id, name, slug, description, city, address, contact_email, contact_phone, hero_image_url, amenities, status, created_at, updated_at";
+const OWNER_ROOM_COLUMNS =
+  "id, hotel_id, name, room_type, description, price_per_night, guest_capacity, bedroom_count, bathroom_count, amenities, image_urls, is_active, created_at, updated_at";
+const OWNER_BOOKING_COLUMNS =
+  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, created_at";
+
 function getBaseMetrics() {
   return {
     totalHotels: 0,
@@ -97,30 +104,36 @@ function mapBooking(row, room) {
   };
 }
 
-async function getOwnerScopedInventory() {
+async function getOwnerHotelContext() {
   const { user, profile } = await requireOwner();
 
   if (!hasSupabasePublicEnv()) {
-    return getUnavailableState(
-      profile,
-      "Supabase environment variables are not configured yet.",
-    );
+    return {
+      ...getUnavailableState(
+        profile,
+        "Supabase environment variables are not configured yet.",
+      ),
+      user,
+      supabase: null,
+    };
   }
 
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return getUnavailableState(
-      profile,
-      "Authenticated Supabase access is temporarily unavailable.",
-    );
+    return {
+      ...getUnavailableState(
+        profile,
+        "Authenticated Supabase access is temporarily unavailable.",
+      ),
+      user,
+      supabase: null,
+    };
   }
 
   const { data: hotelRows, error: hotelError } = await supabase
     .from("hotels")
-    .select(
-      "id, name, slug, description, city, address, contact_email, contact_phone, hero_image_url, amenities, status, created_at, updated_at",
-    )
+    .select(OWNER_HOTEL_COLUMNS)
     .eq("owner_id", user.id)
     .order("created_at", { ascending: true });
 
@@ -133,24 +146,56 @@ async function getOwnerScopedInventory() {
   if (!hotels.length) {
     return {
       status: "no_hotel",
+      user,
       profile,
+      supabase,
       hotels: [],
       primaryHotel: null,
-      rooms: [],
-      recentBookings: [],
       metrics: getBaseMetrics(),
       reason: "",
     };
   }
+
+  return {
+    status: "ready",
+    user,
+    profile,
+    supabase,
+    hotels,
+    primaryHotel: hotels[0] || null,
+    metrics: {
+      ...getBaseMetrics(),
+      totalHotels: hotels.length,
+    },
+    reason: "",
+  };
+}
+
+async function getOwnerScopedInventory() {
+  const hotelContext = await getOwnerHotelContext();
+
+  if (hotelContext.status !== "ready") {
+    return {
+      status: hotelContext.status,
+      profile: hotelContext.profile,
+      hotels: hotelContext.hotels,
+      primaryHotel: hotelContext.primaryHotel,
+      rooms: [],
+      recentBookings: [],
+      metrics: hotelContext.metrics,
+      reason: hotelContext.reason,
+    };
+  }
+
+  const { profile, supabase, hotels, primaryHotel, metrics: baseMetrics } =
+    hotelContext;
 
   const hotelsById = new Map(hotels.map((hotel) => [hotel._id, hotel]));
   const hotelIds = hotels.map((hotel) => hotel._id);
 
   const { data: roomRows, error: roomError } = await supabase
     .from("rooms")
-    .select(
-      "id, hotel_id, name, room_type, description, price_per_night, guest_capacity, bedroom_count, bathroom_count, amenities, image_urls, is_active, created_at, updated_at",
-    )
+    .select(OWNER_ROOM_COLUMNS)
     .in("hotel_id", hotelIds)
     .order("created_at", { ascending: false });
 
@@ -163,7 +208,7 @@ async function getOwnerScopedInventory() {
   );
 
   const metrics = {
-    totalHotels: hotels.length,
+    ...baseMetrics,
     totalRooms: rooms.length,
     activeRooms: rooms.filter((room) => room.isAvailable).length,
     totalBookings: 0,
@@ -175,7 +220,7 @@ async function getOwnerScopedInventory() {
       status: "no_rooms",
       profile,
       hotels,
-      primaryHotel: hotels[0] || null,
+      primaryHotel,
       rooms: [],
       recentBookings: [],
       metrics,
@@ -188,9 +233,7 @@ async function getOwnerScopedInventory() {
 
   const { data: bookingRows, error: bookingError } = await supabase
     .from("bookings")
-    .select(
-      "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, created_at",
-    )
+    .select(OWNER_BOOKING_COLUMNS)
     .in("room_id", roomIds)
     .order("created_at", { ascending: false });
 
@@ -206,7 +249,7 @@ async function getOwnerScopedInventory() {
     status: "ready",
     profile,
     hotels,
-    primaryHotel: hotels[0] || null,
+    primaryHotel,
     rooms,
     recentBookings,
     metrics: {
@@ -218,6 +261,97 @@ async function getOwnerScopedInventory() {
       ),
     },
     reason: "",
+  };
+}
+
+export async function getOwnerHotelBootstrapData() {
+  try {
+    const ownerHotelData = await getOwnerHotelContext();
+
+    return {
+      status: ownerHotelData.status,
+      profile: ownerHotelData.profile,
+      hotels: ownerHotelData.hotels,
+      primaryHotel: ownerHotelData.primaryHotel,
+      metrics: ownerHotelData.metrics,
+      reason: ownerHotelData.reason,
+    };
+  } catch {
+    const profile = await getOwnerProfileOrNull();
+    return getUnavailableState(
+      profile,
+      "Owner hotel setup is temporarily unavailable. Please try again shortly.",
+    );
+  }
+}
+
+export async function createOwnerHotelRecord(payload) {
+  const ownerHotelData = await getOwnerHotelContext();
+
+  if (ownerHotelData.status === "unavailable") {
+    return {
+      status: "unavailable",
+      profile: ownerHotelData.profile,
+      hotel: null,
+      reason: ownerHotelData.reason,
+    };
+  }
+
+  if (ownerHotelData.status === "ready") {
+    return {
+      status: "already_exists",
+      profile: ownerHotelData.profile,
+      hotel: ownerHotelData.primaryHotel,
+      reason: "",
+    };
+  }
+
+  const { user, profile, supabase } = ownerHotelData;
+  const contactEmail = payload.contactEmail || profile?.email || "";
+  const contactPhone = payload.contactPhone || profile?.phone || "";
+  const slugCandidates = [
+    payload.slugBase,
+    `${payload.slugBase}-${user.id.slice(0, 8)}`,
+  ];
+
+  for (const slug of slugCandidates) {
+    const { data, error } = await supabase
+      .from("hotels")
+      .insert({
+        owner_id: user.id,
+        name: payload.name,
+        slug,
+        description: payload.description || null,
+        city: payload.city,
+        address: payload.address,
+        contact_email: contactEmail || null,
+        contact_phone: contactPhone || null,
+        status: "draft",
+      })
+      .select(OWNER_HOTEL_COLUMNS)
+      .single();
+
+    if (!error) {
+      return {
+        status: "created",
+        profile,
+        hotel: mapHotel(data),
+        reason: "",
+      };
+    }
+
+    if (error.code === "23505") {
+      continue;
+    }
+
+    throw error;
+  }
+
+  return {
+    status: "unavailable",
+    profile,
+    hotel: null,
+    reason: "Unable to create a unique hotel record right now. Please try again.",
   };
 }
 

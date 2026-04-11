@@ -69,6 +69,11 @@ export async function OwnerDashboardScreen() {
               hotel is created for this account, owner pages will start reading
               real owner-scoped rooms and bookings.
             </p>
+            <div className="mt-5">
+              <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
+                Set up your hotel
+              </Link>
+            </div>
           </div>
 
           <div className="rounded-[30px] border border-[var(--color-line)] bg-white p-6 shadow-[var(--shadow-soft)]">
