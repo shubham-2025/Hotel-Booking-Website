@@ -264,6 +264,71 @@ async function getOwnerScopedInventory() {
   };
 }
 
+async function getOwnerRoomContext(roomId) {
+  const ownerHotelData = await getOwnerHotelContext();
+
+  if (ownerHotelData.status === "unavailable") {
+    return {
+      status: "unavailable",
+      profile: ownerHotelData.profile,
+      hotels: [],
+      primaryHotel: null,
+      room: null,
+      supabase: null,
+      reason: ownerHotelData.reason,
+    };
+  }
+
+  if (ownerHotelData.status === "no_hotel") {
+    return {
+      status: "no_hotel",
+      profile: ownerHotelData.profile,
+      hotels: [],
+      primaryHotel: null,
+      room: null,
+      supabase: ownerHotelData.supabase,
+      reason: "",
+    };
+  }
+
+  const { profile, supabase, hotels, primaryHotel } = ownerHotelData;
+  const hotelsById = new Map(hotels.map((hotel) => [hotel._id, hotel]));
+  const hotelIds = hotels.map((hotel) => hotel._id);
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .select(OWNER_ROOM_COLUMNS)
+    .eq("id", roomId)
+    .in("hotel_id", hotelIds)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return {
+      status: "not_found",
+      profile,
+      hotels,
+      primaryHotel,
+      room: null,
+      supabase,
+      reason: "",
+    };
+  }
+
+  return {
+    status: "ready",
+    profile,
+    hotels,
+    primaryHotel,
+    room: mapRoom(data, hotelsById.get(data.hotel_id) || primaryHotel || null),
+    supabase,
+    reason: "",
+  };
+}
+
 export async function getOwnerHotelBootstrapData() {
   try {
     const ownerHotelData = await getOwnerHotelContext();
@@ -407,6 +472,114 @@ export async function createOwnerRoomRecord(payload) {
     profile,
     hotel: primaryHotel,
     room: mapRoom(data, primaryHotel),
+    reason: "",
+  };
+}
+
+export async function getOwnerRoomForEditData(roomId) {
+  try {
+    const roomData = await getOwnerRoomContext(roomId);
+
+    return {
+      status: roomData.status,
+      profile: roomData.profile,
+      hotels: roomData.hotels,
+      primaryHotel: roomData.primaryHotel,
+      room: roomData.room,
+      reason: roomData.reason,
+    };
+  } catch {
+    const profile = await getOwnerProfileOrNull();
+    return {
+      status: "unavailable",
+      profile,
+      hotels: [],
+      primaryHotel: null,
+      room: null,
+      reason: "Room editor is temporarily unavailable. Please try again shortly.",
+    };
+  }
+}
+
+export async function updateOwnerRoomRecord(roomId, payload) {
+  const roomData = await getOwnerRoomContext(roomId);
+
+  if (roomData.status !== "ready") {
+    return {
+      status: roomData.status,
+      profile: roomData.profile,
+      room: roomData.room,
+      hotel: roomData.primaryHotel,
+      reason: roomData.reason,
+    };
+  }
+
+  const { profile, supabase, room } = roomData;
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      name: payload.name || null,
+      room_type: payload.roomType,
+      description: payload.description || null,
+      price_per_night: payload.pricePerNight,
+      guest_capacity: payload.guestCapacity,
+      bedroom_count: payload.bedroomCount,
+      bathroom_count: payload.bathroomCount,
+      amenities: payload.amenities,
+    })
+    .eq("id", roomId)
+    .eq("hotel_id", room.hotel?._id || "")
+    .select(OWNER_ROOM_COLUMNS)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    status: "updated",
+    profile,
+    hotel: room.hotel,
+    room: mapRoom(data, room.hotel),
+    reason: "",
+  };
+}
+
+export async function setOwnerRoomAvailability(roomId, shouldBeActive) {
+  const roomData = await getOwnerRoomContext(roomId);
+
+  if (roomData.status !== "ready") {
+    return {
+      status: roomData.status,
+      profile: roomData.profile,
+      room: roomData.room,
+      hotel: roomData.primaryHotel,
+      reason: roomData.reason,
+    };
+  }
+
+  const { profile, supabase, room } = roomData;
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .update({
+      is_active: shouldBeActive,
+    })
+    .eq("id", roomId)
+    .eq("hotel_id", room.hotel?._id || "")
+    .select(OWNER_ROOM_COLUMNS)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    status: "updated",
+    profile,
+    hotel: room.hotel,
+    room: mapRoom(data, room.hotel),
     reason: "",
   };
 }

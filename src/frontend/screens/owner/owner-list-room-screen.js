@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { toggleOwnerRoomAvailabilityAction } from "@/src/backend/owner/owner-room-actions";
 import { formatCurrency } from "@/src/frontend/lib/format";
 import { getOwnerRoomsData } from "@/src/backend/repositories/owner-repository";
 
@@ -40,8 +41,7 @@ export async function OwnerListRoomScreen() {
           No hotel linked to this owner account
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Room inventory now depends on real owner-scoped data. Since this
-          account does not have a hotel yet, there are no rooms to load.
+          Room inventory now depends on real owner-scoped data. Since this account does not have a hotel yet, there are no rooms to load.
         </p>
 
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6 shadow-[var(--shadow-soft)]">
@@ -49,9 +49,7 @@ export async function OwnerListRoomScreen() {
             Setup first
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            The next foundational step is creating the hotel record for this
-            owner/admin. Once that exists, this page will show only rooms that
-            belong to that hotel scope.
+            The next foundational step is creating the hotel record for this owner/admin. Once that exists, this page will show only rooms that belong to that hotel scope.
           </p>
           <div className="mt-5">
             <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
@@ -74,8 +72,7 @@ export async function OwnerListRoomScreen() {
             Listing management
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This page now reads only rooms linked to the authenticated owner
-            account. Public/demo inventory is no longer used here.
+            This page now reads only rooms linked to the authenticated owner account. Draft and active status are now part of the real owner lifecycle here.
           </p>
         </div>
 
@@ -97,7 +94,7 @@ export async function OwnerListRoomScreen() {
               {primaryHotel?.name}
             </h2>
             <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
-              {primaryHotel?.city} · {primaryHotel?.address}
+              {primaryHotel?.city} | {primaryHotel?.address}
             </p>
           </div>
 
@@ -122,8 +119,7 @@ export async function OwnerListRoomScreen() {
             Your hotel is linked, but inventory is still empty
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This owner page is now using real account scope correctly, and you
-            can add the first room for this hotel directly from the owner area.
+            This owner page is now using real account scope correctly, and you can add the first room for this hotel directly from the owner area.
           </p>
           <div className="mt-5">
             <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
@@ -138,7 +134,7 @@ export async function OwnerListRoomScreen() {
               key={room._id}
               className="rounded-[28px] border border-[var(--color-line)] bg-[#fbfcfe] p-4 shadow-[var(--shadow-soft)]"
             >
-              <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_220px]">
+              <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
                 <img
                   src={room.images[0]}
                   alt={room.hotel?.name}
@@ -149,16 +145,21 @@ export async function OwnerListRoomScreen() {
                     {room.hotel?.city}
                   </p>
                   <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-                    {room.hotel?.name}
+                    {room.name || room.roomType}
                   </h2>
                   <p className="mt-2 text-sm text-[var(--color-muted)]">
                     {room.roomType}
                   </p>
                   <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
-                    Capacity {room.guestCapacity} · {room.bedroomCount} bedroom
-                    {room.bedroomCount === 1 ? "" : "s"} · {room.bathroomCount}
-                    {" "}bathroom{room.bathroomCount === 1 ? "" : "s"}
+                    Capacity {room.guestCapacity} | {room.bedroomCount} bedroom
+                    {room.bedroomCount === 1 ? "" : "s"} | {room.bathroomCount} bathroom
+                    {room.bathroomCount === 1 ? "" : "s"}
                   </p>
+                  {room.description ? (
+                    <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
+                      {room.description}
+                    </p>
+                  ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">
                     {room.amenities.map((amenity) => (
                       <span
@@ -179,6 +180,7 @@ export async function OwnerListRoomScreen() {
                       {formatCurrency(room.pricePerNight)}
                     </p>
                   </div>
+
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
                       Status
@@ -192,6 +194,39 @@ export async function OwnerListRoomScreen() {
                     >
                       {room.isAvailable ? "Active" : "Draft"}
                     </span>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
+                      {room.isAvailable
+                        ? "Visible on public room pages."
+                        : "Hidden from public room pages until published."}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-3">
+                    <Link
+                      href={`/owner/rooms/${room._id}/edit`}
+                      className="button-secondary min-h-11 w-full"
+                    >
+                      Edit room
+                    </Link>
+
+                    <form action={toggleOwnerRoomAvailabilityAction}>
+                      <input type="hidden" name="roomId" value={room._id} />
+                      <input
+                        type="hidden"
+                        name="nextState"
+                        value={room.isAvailable ? "unpublish" : "publish"}
+                      />
+                      <button
+                        type="submit"
+                        className={`min-h-11 w-full rounded-full px-4 text-sm font-semibold transition ${
+                          room.isAvailable
+                            ? "border border-[var(--color-line)] bg-white text-[var(--color-ink)] hover:bg-[var(--color-card-soft)]"
+                            : "button-primary"
+                        }`}
+                      >
+                        {room.isAvailable ? "Unpublish room" : "Publish room"}
+                      </button>
+                    </form>
                   </div>
                 </div>
               </div>

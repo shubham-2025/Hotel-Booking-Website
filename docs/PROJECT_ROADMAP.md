@@ -74,6 +74,10 @@
   - Google sign-in
   - remember-me email convenience
   - secure reset-password recovery
+- Add a shared `/host` owner-access entry path so:
+  - logged-out users are guided into common auth first
+  - guests understand how owner access works with the same account
+  - owners/admins can continue into hotel setup or the owner dashboard
 - Create `guest`, `owner`, `admin` roles.
 - Protect `/owner` routes with middleware and role checks.
 
@@ -87,8 +91,10 @@
 
 - Hotel bootstrap/create flow is complete.
 - Authenticated draft room creation is complete.
+- Authenticated room edit flow is complete.
+- Room publish / unpublish controls are complete.
 - Upload room images to Supabase Storage.
-- Add edit, archive and publish actions for rooms.
+- Add archive/delete actions for rooms.
 
 ### Phase 6: Email workflows
 

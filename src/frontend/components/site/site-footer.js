@@ -15,6 +15,7 @@ const footerGroups = [
     links: [
       { label: "Login", href: "/login" },
       { label: "Create account", href: "/create-account" },
+      { label: "Owner access", href: "/host" },
       { label: "Travel inspiration", href: "/" },
     ],
   },

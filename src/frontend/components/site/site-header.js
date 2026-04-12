@@ -56,6 +56,15 @@ export function SiteHeader({ authState }) {
   const shouldFloat = !isAuthPage;
   const showBox = shouldFloat && (hasScrolled || isMenuOpen);
   const useLightTheme = isHome && !showBox && shouldFloat;
+  const isManagementUser =
+    authState?.role === "owner" || authState?.role === "admin";
+  const shouldShowOwnerEntryCta = isManagementUser || isAuthPage;
+  const ownerCtaLabel = authState?.isAuthenticated
+    ? isManagementUser
+      ? "Owner Dashboard"
+      : "Become a Host"
+    : "Owner Access";
+  const ownerCtaHref = isManagementUser ? "/owner" : "/host";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -153,6 +162,17 @@ export function SiteHeader({ authState }) {
                       </div>
                     </div>
 
+                    <Link
+                      href={ownerCtaHref}
+                      className={
+                        isManagementUser
+                          ? "button-primary min-h-11 px-5 whitespace-nowrap"
+                          : "button-secondary min-h-11 px-5 whitespace-nowrap"
+                      }
+                    >
+                      {ownerCtaLabel}
+                    </Link>
+
                     <form action="/auth/sign-out" method="post">
                       <button
                         type="submit"
@@ -163,16 +183,30 @@ export function SiteHeader({ authState }) {
                     </form>
                   </>
                 ) : (
-                  <Link
-                    href="/login"
-                    className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-6 text-sm font-semibold transition ${
-                      useLightTheme
-                        ? "border border-white/28 bg-white/10 text-white backdrop-blur-md hover:bg-white/18"
-                        : "border border-[var(--color-line)] bg-white text-[var(--color-ink)] shadow-[0_8px_24px_rgba(18,36,59,0.06)] hover:bg-[var(--color-card-soft)]"
-                    }`}
-                  >
-                    Login
-                  </Link>
+                  <>
+                    {shouldShowOwnerEntryCta ? (
+                      <Link
+                        href={ownerCtaHref}
+                        className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-6 text-sm font-semibold transition ${
+                          useLightTheme
+                            ? "border border-white/24 bg-white/8 text-white backdrop-blur-md hover:bg-white/16"
+                            : "border border-[var(--color-line)] bg-white text-[var(--color-ink)] shadow-[0_8px_24px_rgba(18,36,59,0.06)] hover:bg-[var(--color-card-soft)]"
+                        }`}
+                      >
+                        {ownerCtaLabel}
+                      </Link>
+                    ) : null}
+                    <Link
+                      href="/login"
+                      className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-6 text-sm font-semibold transition ${
+                        useLightTheme
+                          ? "border border-white/28 bg-white/10 text-white backdrop-blur-md hover:bg-white/18"
+                          : "border border-[var(--color-line)] bg-white text-[var(--color-ink)] shadow-[0_8px_24px_rgba(18,36,59,0.06)] hover:bg-[var(--color-card-soft)]"
+                      }`}
+                    >
+                      Login
+                    </Link>
+                  </>
                 )}
               </div>
 
@@ -238,6 +272,19 @@ export function SiteHeader({ authState }) {
                           Signed in
                         </p>
                       </div>
+                      {shouldShowOwnerEntryCta ? (
+                        <Link
+                          href={ownerCtaHref}
+                          onClick={closeMenu}
+                          className={
+                            isManagementUser
+                              ? "button-primary w-full"
+                              : "button-secondary w-full"
+                          }
+                        >
+                          {ownerCtaLabel}
+                        </Link>
+                      ) : null}
                       <form action="/auth/sign-out" method="post">
                         <button
                           type="submit"
@@ -248,13 +295,24 @@ export function SiteHeader({ authState }) {
                       </form>
                     </>
                   ) : (
-                    <Link
-                      href="/login"
-                      onClick={closeMenu}
-                      className="button-secondary w-full"
-                    >
-                      Login
-                    </Link>
+                    <>
+                      {shouldShowOwnerEntryCta ? (
+                        <Link
+                          href={ownerCtaHref}
+                          onClick={closeMenu}
+                          className="button-secondary w-full"
+                        >
+                          {ownerCtaLabel}
+                        </Link>
+                      ) : null}
+                      <Link
+                        href="/login"
+                        onClick={closeMenu}
+                        className="button-secondary w-full"
+                      >
+                        Login
+                      </Link>
+                    </>
                   )}
                 </div>
               </div>
