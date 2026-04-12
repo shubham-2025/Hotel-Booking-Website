@@ -69,7 +69,11 @@
 
 ### Phase 3: Auth and roles
 
-- Add sign-in / sign-up screens.
+- Add `/login`, `/create-account`, `/forgot-password`, and `/reset-password` flows with:
+  - richer signup fields
+  - Google sign-in
+  - remember-me email convenience
+  - secure reset-password recovery
 - Create `guest`, `owner`, `admin` roles.
 - Protect `/owner` routes with middleware and role checks.
 

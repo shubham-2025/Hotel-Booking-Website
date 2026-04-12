@@ -42,15 +42,17 @@ export function AuthPanel({
 
               <div className={status ? "mt-6" : ""}>{children}</div>
 
-              <p className="mt-6 text-sm text-[var(--color-muted)]">
-                {footerPrompt}{" "}
-                <Link
-                  href={footerLinkHref}
-                  className="font-semibold text-[var(--color-highlight)] transition hover:text-[var(--color-ink)]"
-                >
-                  {footerLinkLabel}
-                </Link>
-              </p>
+              {footerPrompt && footerLinkLabel && footerLinkHref ? (
+                <p className="mt-6 text-sm text-[var(--color-muted)]">
+                  {footerPrompt}{" "}
+                  <Link
+                    href={footerLinkHref}
+                    className="font-semibold text-[var(--color-highlight)] transition hover:text-[var(--color-ink)]"
+                  >
+                    {footerLinkLabel}
+                  </Link>
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

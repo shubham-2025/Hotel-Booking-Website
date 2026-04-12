@@ -7,7 +7,14 @@ export function getSafeRedirectTarget(value, fallback = "/") {
     return fallback;
   }
 
-  if (value === "/sign-in" || value === "/sign-up") {
+  if (
+    value === "/sign-in" ||
+    value === "/sign-up" ||
+    value === "/login" ||
+    value === "/create-account" ||
+    value === "/forgot-password" ||
+    value === "/reset-password"
+  ) {
     return fallback;
   }
 

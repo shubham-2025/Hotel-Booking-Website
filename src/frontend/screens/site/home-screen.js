@@ -314,7 +314,7 @@ export function HomeScreen() {
               <Link href="/rooms" className="button-primary-strong">
                 Browse rooms
               </Link>
-              <Link href="/sign-up" className="button-secondary">
+              <Link href="/create-account" className="button-secondary">
                 Create account
               </Link>
             </div>

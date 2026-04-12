@@ -46,7 +46,13 @@ export function SiteHeader({ authState }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const isHome = pathname === "/";
-  const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up";
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/create-account" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/sign-in" ||
+    pathname === "/sign-up";
   const shouldFloat = !isAuthPage;
   const showBox = shouldFloat && (hasScrolled || isMenuOpen);
   const useLightTheme = isHome && !showBox && shouldFloat;
@@ -158,7 +164,7 @@ export function SiteHeader({ authState }) {
                   </>
                 ) : (
                   <Link
-                    href="/sign-in"
+                    href="/login"
                     className={`inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-6 text-sm font-semibold transition ${
                       useLightTheme
                         ? "border border-white/28 bg-white/10 text-white backdrop-blur-md hover:bg-white/18"
@@ -243,7 +249,7 @@ export function SiteHeader({ authState }) {
                     </>
                   ) : (
                     <Link
-                      href="/sign-in"
+                      href="/login"
                       onClick={closeMenu}
                       className="button-secondary w-full"
                     >

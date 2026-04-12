@@ -3,10 +3,14 @@ import {
   signUpAction,
 } from "@/src/backend/auth/auth-actions";
 import { AuthPanel } from "@/src/frontend/features/auth/auth-panel";
+import { SignUpForm } from "@/src/frontend/features/auth/sign-up-form.client";
 
 const errorMessages = {
   auth_unavailable: "Account creation is temporarily unavailable. Please try again shortly.",
   missing_fields: "Please complete the required sign up fields.",
+  password_mismatch: "Password and confirm password must match.",
+  password_too_short: "Password must be at least 6 characters long.",
+  email_in_use: "An account already exists with this email address.",
   signup_failed: "We could not create your account right now.",
   oauth_failed: "Google sign up could not be completed. Please try again.",
 };
@@ -29,11 +33,13 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
     <AuthPanel
       eyebrow="Create account"
       title="Create your QuickStay account"
-      description="Set up a simple account so you can move faster through future booking and account-aware flows."
+      description="Set up your traveler account with contact details, a secure password, and a smoother return path into future booking flows."
       status={status}
       footerPrompt="Already have an account?"
-      footerLinkLabel="Sign in"
-      footerLinkHref={next && next !== "/" ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"}
+      footerLinkLabel="Login"
+      footerLinkHref={
+        next && next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login"
+      }
     >
       <form action={continueWithGoogleAction}>
         <input type="hidden" name="next" value={next} />
@@ -72,56 +78,7 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
         <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
-      <form action={signUpAction} className="space-y-4">
-        <input type="hidden" name="next" value={next} />
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">
-            Full name
-          </span>
-          <input
-            type="text"
-            name="fullName"
-            required
-            autoComplete="name"
-            className="field-input"
-            placeholder="Your name"
-          />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">
-            Email
-          </span>
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            className="field-input"
-            placeholder="you@example.com"
-          />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">
-            Password
-          </span>
-          <input
-            type="password"
-            name="password"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="field-input"
-            placeholder="Create a password"
-          />
-        </label>
-
-        <button type="submit" className="button-primary w-full">
-          Create account
-        </button>
-      </form>
+      <SignUpForm action={signUpAction} next={next} />
     </AuthPanel>
   );
 }

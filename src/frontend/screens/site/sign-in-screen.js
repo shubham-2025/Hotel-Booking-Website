@@ -3,6 +3,7 @@ import {
   signInAction,
 } from "@/src/backend/auth/auth-actions";
 import { AuthPanel } from "@/src/frontend/features/auth/auth-panel";
+import { SignInForm } from "@/src/frontend/features/auth/sign-in-form.client";
 
 const errorMessages = {
   auth_unavailable: "Sign in is temporarily unavailable. Please try again shortly.",
@@ -12,8 +13,12 @@ const errorMessages = {
 };
 
 const noticeMessages = {
+  account_created:
+    "Account created successfully. Use the password you chose to log in.",
   check_email:
-    "Your account was created. Check your email if confirmation is required before signing in.",
+    "Check your email to confirm your account, then return here to log in.",
+  password_reset:
+    "Your password was updated successfully. You can sign in now.",
 };
 
 function getStatus(errorCode, noticeCode) {
@@ -40,12 +45,16 @@ export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
   return (
     <AuthPanel
       eyebrow="Welcome back"
-      title="Sign in to your QuickStay account"
-      description="Use your email and password to continue browsing, manage your account, and return to saved booking flows."
+      title="Login to your QuickStay account"
+      description="Sign in to continue browsing stays, manage your booking activity, and return to your saved owner or traveler flows."
       status={status}
       footerPrompt="Need an account?"
       footerLinkLabel="Create one"
-      footerLinkHref={next && next !== "/" ? `/sign-up?next=${encodeURIComponent(next)}` : "/sign-up"}
+      footerLinkHref={
+        next && next !== "/"
+          ? `/create-account?next=${encodeURIComponent(next)}`
+          : "/create-account"
+      }
     >
       <form action={continueWithGoogleAction}>
         <input type="hidden" name="next" value={next} />
@@ -84,42 +93,7 @@ export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
         <div className="h-px flex-1 bg-[var(--color-line)]" />
       </div>
 
-      <form action={signInAction} className="space-y-4">
-        <input type="hidden" name="next" value={next} />
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">
-            Email
-          </span>
-          <input
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            className="field-input"
-            placeholder="you@example.com"
-          />
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium text-[var(--color-ink)]">
-            Password
-          </span>
-          <input
-            type="password"
-            name="password"
-            required
-            minLength={6}
-            autoComplete="current-password"
-            className="field-input"
-            placeholder="Enter your password"
-          />
-        </label>
-
-        <button type="submit" className="button-primary w-full">
-          Login
-        </button>
-      </form>
+      <SignInForm action={signInAction} next={next} />
     </AuthPanel>
   );
 }

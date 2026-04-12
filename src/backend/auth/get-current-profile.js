@@ -6,6 +6,7 @@ const PROFILE_COLUMNS = `
   full_name,
   email,
   phone,
+  address,
   role,
   avatar_url,
   created_at,
