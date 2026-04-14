@@ -49,10 +49,10 @@ export function HeroSection() {
   return (
     <section className="gradient-frame relative overflow-hidden">
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroImage})` }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(11,26,44,0.82),rgba(18,48,78,0.54),rgba(121,176,230,0.3))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(11,26,44,0.82),rgba(18,48,78,0.54),rgba(121,176,230,0.3))]" />
 
       <div className="page-shell relative grid min-h-[100svh] items-center gap-10 px-4 pb-14 pt-28 lg:grid-cols-[1.1fr_0.9fr] lg:pb-16 lg:pt-32">
         <div className="max-w-2xl text-white animate-enter">

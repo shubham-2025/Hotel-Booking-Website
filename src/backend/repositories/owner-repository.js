@@ -1,8 +1,14 @@
+import { randomUUID } from "node:crypto";
+import { createSupabaseAdminClient } from "@/src/backend/auth/supabase-admin-client";
 import { requireOwner } from "@/src/backend/auth/require-owner";
 import { AuthError } from "@/src/backend/auth/auth-errors";
 import { createSupabaseServerClient } from "@/src/backend/auth/supabase-server-client";
 import { hasSupabasePublicEnv } from "@/src/backend/config/env";
 import { getFallbackRoomImages } from "@/src/backend/repositories/demo-fallback-repository";
+import {
+  deleteOwnerRoomImages,
+  uploadOwnerRoomImages,
+} from "@/src/backend/storage/owner-room-image-storage";
 
 const OWNER_HOTEL_COLUMNS =
   "id, name, slug, description, city, address, contact_email, contact_phone, hero_image_url, amenities, status, created_at, updated_at";
@@ -18,6 +24,9 @@ function getBaseMetrics() {
     activeRooms: 0,
     totalBookings: 0,
     totalRevenue: 0,
+    lowestNightlyRate: 0,
+    highestNightlyRate: 0,
+    averageNightlyRate: 0,
   };
 }
 
@@ -66,6 +75,8 @@ function mapHotel(row) {
 }
 
 function mapRoom(row, hotel) {
+  const uploadedImages = row.image_urls || [];
+
   return {
     _id: row.id,
     name: row.name || row.room_type,
@@ -76,7 +87,9 @@ function mapRoom(row, hotel) {
     bedroomCount: row.bedroom_count || 0,
     bathroomCount: row.bathroom_count || 0,
     amenities: row.amenities || [],
-    images: row.image_urls?.length ? row.image_urls : getFallbackRoomImages(),
+    uploadedImages,
+    images: uploadedImages.length ? uploadedImages : getFallbackRoomImages(),
+    usesFallbackImages: uploadedImages.length === 0,
     isAvailable: row.is_active ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -213,6 +226,20 @@ async function getOwnerScopedInventory() {
     activeRooms: rooms.filter((room) => room.isAvailable).length,
     totalBookings: 0,
     totalRevenue: 0,
+    lowestNightlyRate: rooms.length
+      ? Math.min(...rooms.map((room) => room.pricePerNight))
+      : 0,
+    highestNightlyRate: rooms.length
+      ? Math.max(...rooms.map((room) => room.pricePerNight))
+      : 0,
+    averageNightlyRate: rooms.length
+      ? Math.round(
+          rooms.reduce(
+            (runningTotal, room) => runningTotal + room.pricePerNight,
+            0,
+          ) / rooms.length,
+        )
+      : 0,
   };
 
   if (!rooms.length) {
@@ -270,6 +297,7 @@ async function getOwnerRoomContext(roomId) {
   if (ownerHotelData.status === "unavailable") {
     return {
       status: "unavailable",
+      user: ownerHotelData.user,
       profile: ownerHotelData.profile,
       hotels: [],
       primaryHotel: null,
@@ -282,6 +310,7 @@ async function getOwnerRoomContext(roomId) {
   if (ownerHotelData.status === "no_hotel") {
     return {
       status: "no_hotel",
+      user: ownerHotelData.user,
       profile: ownerHotelData.profile,
       hotels: [],
       primaryHotel: null,
@@ -291,7 +320,7 @@ async function getOwnerRoomContext(roomId) {
     };
   }
 
-  const { profile, supabase, hotels, primaryHotel } = ownerHotelData;
+  const { user, profile, supabase, hotels, primaryHotel } = ownerHotelData;
   const hotelsById = new Map(hotels.map((hotel) => [hotel._id, hotel]));
   const hotelIds = hotels.map((hotel) => hotel._id);
 
@@ -309,6 +338,7 @@ async function getOwnerRoomContext(roomId) {
   if (!data) {
     return {
       status: "not_found",
+      user,
       profile,
       hotels,
       primaryHotel,
@@ -320,6 +350,7 @@ async function getOwnerRoomContext(roomId) {
 
   return {
     status: "ready",
+    user,
     profile,
     hotels,
     primaryHotel,
@@ -372,6 +403,7 @@ export async function createOwnerHotelRecord(payload) {
   }
 
   const { user, profile, supabase } = ownerHotelData;
+  const writeClient = createSupabaseAdminClient() || supabase;
   const contactEmail = payload.contactEmail || profile?.email || "";
   const contactPhone = payload.contactPhone || profile?.phone || "";
   const slugCandidates = [
@@ -380,7 +412,7 @@ export async function createOwnerHotelRecord(payload) {
   ];
 
   for (const slug of slugCandidates) {
-    const { data, error } = await supabase
+    const { data, error } = await writeClient
       .from("hotels")
       .insert({
         owner_id: user.id,
@@ -391,6 +423,8 @@ export async function createOwnerHotelRecord(payload) {
         address: payload.address,
         contact_email: contactEmail || null,
         contact_phone: contactPhone || null,
+        hero_image_url: payload.heroImageUrl || null,
+        amenities: payload.amenities || [],
         status: "draft",
       })
       .select(OWNER_HOTEL_COLUMNS)
@@ -409,7 +443,14 @@ export async function createOwnerHotelRecord(payload) {
       continue;
     }
 
-    throw error;
+    return {
+      status: "unavailable",
+      profile,
+      hotel: null,
+      reason:
+        error.message ||
+        "Unable to save your hotel right now. Please try again shortly.",
+    };
   }
 
   return {
@@ -420,7 +461,7 @@ export async function createOwnerHotelRecord(payload) {
   };
 }
 
-export async function createOwnerRoomRecord(payload) {
+export async function createOwnerRoomRecord(payload, options = {}) {
   const ownerHotelData = await getOwnerHotelContext();
 
   if (ownerHotelData.status === "unavailable") {
@@ -443,11 +484,14 @@ export async function createOwnerRoomRecord(payload) {
     };
   }
 
-  const { profile, supabase, primaryHotel } = ownerHotelData;
+  const { user, profile, supabase, primaryHotel } = ownerHotelData;
+  const writeClient = createSupabaseAdminClient() || supabase;
+  const roomId = randomUUID();
 
-  const { data, error } = await supabase
+  const { data, error } = await writeClient
     .from("rooms")
     .insert({
+      id: roomId,
       hotel_id: primaryHotel._id,
       name: payload.name || null,
       room_type: payload.roomType,
@@ -464,14 +508,70 @@ export async function createOwnerRoomRecord(payload) {
     .single();
 
   if (error) {
-    throw error;
+    return {
+      status: "unavailable",
+      profile,
+      room: null,
+      hotel: primaryHotel,
+      reason:
+        error.message ||
+        "Unable to save your room right now. Please try again shortly.",
+    };
+  }
+
+  let nextRow = data;
+  let uploadedImages = [];
+
+  try {
+    if (options.imageFiles?.length) {
+      uploadedImages = await uploadOwnerRoomImages({
+        supabase: writeClient,
+        ownerId: user.id,
+        roomId,
+        files: options.imageFiles,
+      });
+
+      const imageUrls = uploadedImages.map((image) => image.url);
+      const { data: updatedRow, error: updateError } = await writeClient
+        .from("rooms")
+        .update({
+          image_urls: imageUrls,
+        })
+        .eq("id", roomId)
+        .eq("hotel_id", primaryHotel._id)
+        .select(OWNER_ROOM_COLUMNS)
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      nextRow = updatedRow;
+    }
+  } catch (uploadError) {
+    if (uploadedImages.length) {
+      try {
+        await deleteOwnerRoomImages({
+          supabase: writeClient,
+          ownerId: user.id,
+          publicUrls: uploadedImages.map((image) => image.url),
+        });
+      } catch {}
+    }
+
+    await writeClient
+      .from("rooms")
+      .delete()
+      .eq("id", roomId)
+      .eq("hotel_id", primaryHotel._id);
+    throw uploadError;
   }
 
   return {
     status: "created",
     profile,
     hotel: primaryHotel,
-    room: mapRoom(data, primaryHotel),
+    room: mapRoom(nextRow, primaryHotel),
     reason: "",
   };
 }
@@ -501,7 +601,7 @@ export async function getOwnerRoomForEditData(roomId) {
   }
 }
 
-export async function updateOwnerRoomRecord(roomId, payload) {
+export async function updateOwnerRoomRecord(roomId, payload, options = {}) {
   const roomData = await getOwnerRoomContext(roomId);
 
   if (roomData.status !== "ready") {
@@ -514,36 +614,88 @@ export async function updateOwnerRoomRecord(roomId, payload) {
     };
   }
 
-  const { profile, supabase, room } = roomData;
+  const { user, profile, supabase, room } = roomData;
+  const writeClient = createSupabaseAdminClient() || supabase;
+  const retainedImageUrls = Array.from(
+    new Set(
+      (options.retainedImageUrls || []).filter((imageUrl) =>
+        (room.uploadedImages || []).includes(imageUrl),
+      ),
+    ),
+  );
+  let uploadedImages = [];
 
-  const { data, error } = await supabase
-    .from("rooms")
-    .update({
-      name: payload.name || null,
-      room_type: payload.roomType,
-      description: payload.description || null,
-      price_per_night: payload.pricePerNight,
-      guest_capacity: payload.guestCapacity,
-      bedroom_count: payload.bedroomCount,
-      bathroom_count: payload.bathroomCount,
-      amenities: payload.amenities,
-    })
-    .eq("id", roomId)
-    .eq("hotel_id", room.hotel?._id || "")
-    .select(OWNER_ROOM_COLUMNS)
-    .single();
+  try {
+    if (options.imageFiles?.length) {
+      uploadedImages = await uploadOwnerRoomImages({
+        supabase: writeClient,
+        ownerId: user.id,
+        roomId,
+        files: options.imageFiles,
+      });
+    }
 
-  if (error) {
+    const nextImageUrls = [
+      ...retainedImageUrls,
+      ...uploadedImages.map((image) => image.url),
+    ];
+
+    const { data, error } = await writeClient
+      .from("rooms")
+      .update({
+        name: payload.name || null,
+        room_type: payload.roomType,
+        description: payload.description || null,
+        price_per_night: payload.pricePerNight,
+        guest_capacity: payload.guestCapacity,
+        bedroom_count: payload.bedroomCount,
+        bathroom_count: payload.bathroomCount,
+        amenities: payload.amenities,
+        image_urls: nextImageUrls,
+      })
+      .eq("id", roomId)
+      .eq("hotel_id", room.hotel?._id || "")
+      .select(OWNER_ROOM_COLUMNS)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const removedImageUrls = (room.uploadedImages || []).filter(
+      (imageUrl) => !retainedImageUrls.includes(imageUrl),
+    );
+
+    if (removedImageUrls.length) {
+      try {
+        await deleteOwnerRoomImages({
+          supabase: writeClient,
+          ownerId: user.id,
+          publicUrls: removedImageUrls,
+        });
+      } catch {}
+    }
+
+    return {
+      status: "updated",
+      profile,
+      hotel: room.hotel,
+      room: mapRoom(data, room.hotel),
+      reason: "",
+    };
+  } catch (error) {
+    if (uploadedImages.length) {
+      try {
+        await deleteOwnerRoomImages({
+          supabase: writeClient,
+          ownerId: user.id,
+          publicUrls: uploadedImages.map((image) => image.url),
+        });
+      } catch {}
+    }
+
     throw error;
   }
-
-  return {
-    status: "updated",
-    profile,
-    hotel: room.hotel,
-    room: mapRoom(data, room.hotel),
-    reason: "",
-  };
 }
 
 export async function setOwnerRoomAvailability(roomId, shouldBeActive) {
@@ -560,8 +712,9 @@ export async function setOwnerRoomAvailability(roomId, shouldBeActive) {
   }
 
   const { profile, supabase, room } = roomData;
+  const writeClient = createSupabaseAdminClient() || supabase;
 
-  const { data, error } = await supabase
+  const { data, error } = await writeClient
     .from("rooms")
     .update({
       is_active: shouldBeActive,

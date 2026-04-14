@@ -1,4 +1,14 @@
 import Link from "next/link";
+import { startHostingAction } from "@/src/backend/owner/owner-access-actions";
+
+const errorMessages = {
+  profile_unavailable:
+    "We could not load your account profile for owner setup. Please sign in again and retry.",
+  owner_activation_unavailable:
+    "Owner activation is temporarily unavailable in this environment. Please try again shortly.",
+  owner_activation_failed:
+    "We could not activate owner access right now. Please try again shortly.",
+};
 
 function StepList({ items }) {
   return (
@@ -16,7 +26,10 @@ export function OwnerAccessScreen({
   fullName = "",
   hotelName = "",
   reason = "",
+  errorCode = "",
 }) {
+  const errorMessage = errorCode && errorMessages[errorCode] ? errorMessages[errorCode] : "";
+
   if (state === "logged_out") {
     return (
       <section className="section-space">
@@ -70,14 +83,27 @@ export function OwnerAccessScreen({
               Your account is signed in as a traveler{fullName ? `, ${fullName}` : ""}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
-              Owner access uses the same QuickStay account, but this account still needs an `owner` or `admin` role before hotel setup can begin.
+              Owner access uses the same QuickStay account, but every new
+              account starts as a traveler first. This account still needs an
+              `owner` or `admin` role before hotel setup can begin.
             </p>
 
+            {errorMessage ? (
+              <p className="mt-5 rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-100">
+                {errorMessage}
+              </p>
+            ) : null}
+
             <div className="mt-6 flex flex-wrap gap-3">
+              <form action={startHostingAction}>
+                <button type="submit" className="button-primary min-h-11 px-5">
+                  Start hosting
+                </button>
+              </form>
               <Link href="/" className="button-secondary min-h-11 px-5">
                 Back to home
               </Link>
-              <Link href="/host" className="button-primary min-h-11 px-5">
+              <Link href="/host" className="button-secondary min-h-11 px-5">
                 Refresh owner access
               </Link>
               {supportEmail ? (
@@ -100,16 +126,16 @@ export function OwnerAccessScreen({
               <StepList
                 items={[
                   "Keep using the same QuickStay login.",
-                  "Have the account upgraded to owner/admin access.",
-                  "Return here and continue directly to hotel setup.",
+                  "Activate owner access for this account from this page.",
+                  "Continue directly to hotel setup and then add rooms.",
                 ]}
               />
             </div>
-            {!supportEmail ? (
-              <p className="mt-5 text-sm leading-7 text-[var(--color-muted)]">
-                Support email is not configured in this environment yet, so owner role enablement still needs to be handled by the project admin or directly in Supabase.
-              </p>
-            ) : null}
+            <p className="mt-5 text-sm leading-7 text-[var(--color-muted)]">
+              Once owner access is activated, this same account can still browse
+              home, rooms, and bookings like any normal user, while also gaining
+              access to hotel setup and owner inventory pages.
+            </p>
           </div>
         </div>
       </section>

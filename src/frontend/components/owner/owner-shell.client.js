@@ -19,13 +19,13 @@ export function OwnerShell({ children }) {
                 Owner Console
               </p>
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
-                Next.js migration in progress
+                Property setup, inventory and pricing workspace
               </p>
             </div>
           </Link>
 
           <div className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-strong)]">
-            Mobile responsive shell
+            Live owner area
           </div>
         </div>
       </header>
@@ -37,7 +37,7 @@ export function OwnerShell({ children }) {
               Owner nav
             </p>
             <h2 className="mt-2 font-display text-2xl text-[var(--color-ink)]">
-              Manage your property stack
+              Manage your property
             </h2>
           </div>
 

@@ -144,9 +144,9 @@ export function HomeScreen() {
                 <img
                   src={offer.image}
                   alt={offer.title}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,26,44,0.16),rgba(11,26,44,0.84))]" />
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(11,26,44,0.16),rgba(11,26,44,0.84))]" />
                 <div className="relative flex h-full min-h-[18.5rem] flex-col gap-5">
                   <div>
                     <span className="inline-flex rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)]">

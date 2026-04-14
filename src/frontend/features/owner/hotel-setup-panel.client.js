@@ -1,8 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createOwnerHotelAction } from "@/src/backend/owner/owner-hotel-actions";
+import { heroImage } from "@/src/frontend/assets";
+
+const hotelAmenityOptions = [
+  "Free WiFi",
+  "Breakfast included",
+  "Airport pickup",
+  "Swimming pool",
+  "Fitness center",
+  "Parking",
+];
 
 const initialFormState = {
   status: "idle",
@@ -37,6 +47,19 @@ export function HotelSetupPanel({ profile }) {
     createOwnerHotelAction,
     initialFormState,
   );
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [selectedAmenities, setSelectedAmenities] = useState([
+    "Free WiFi",
+    "Breakfast included",
+  ]);
+
+  function toggleAmenity(amenity) {
+    setSelectedAmenities((current) =>
+      current.includes(amenity)
+        ? current.filter((item) => item !== amenity)
+        : [...current, amenity],
+    );
+  }
 
   return (
     <form action={formAction} className="space-y-6">
@@ -127,10 +150,81 @@ export function HotelSetupPanel({ profile }) {
         <FieldError errors={state.fieldErrors?.description} />
       </label>
 
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-[var(--color-ink)]">
+            Hero image URL
+          </span>
+          <input
+            type="url"
+            name="heroImageUrl"
+            value={heroImageUrl}
+            onChange={(event) => setHeroImageUrl(event.target.value)}
+            className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
+            placeholder="https://images.example.com/your-hotel-cover.jpg"
+          />
+          <p className="text-sm leading-7 text-[var(--color-muted)]">
+            Add a real hotel cover image URL now so the owner area feels more
+            complete. You can refine this later if needed.
+          </p>
+          <FieldError errors={state.fieldErrors?.heroImageUrl} />
+        </div>
+
+        <div className="overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-[#f7fbff] shadow-[var(--shadow-soft)]">
+          <img
+            src={heroImageUrl || heroImage}
+            alt="Hotel preview"
+            className="aspect-[4/3] w-full object-cover"
+          />
+          <div className="p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+              Live preview
+            </p>
+            <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+              This cover helps your owner dashboard and property setup feel more
+              like a real listing instead of a placeholder record.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-[var(--color-ink)]">
+          Property amenities
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {hotelAmenityOptions.map((amenity) => {
+            const active = selectedAmenities.includes(amenity);
+
+            return (
+              <button
+                key={amenity}
+                type="button"
+                onClick={() => toggleAmenity(amenity)}
+                className={`rounded-full px-4 py-2 text-sm ${
+                  active
+                    ? "bg-[var(--color-ink)] text-white"
+                    : "bg-white text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                }`}
+              >
+                {amenity}
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedAmenities.map((amenity) => (
+          <input key={amenity} type="hidden" name="amenities" value={amenity} />
+        ))}
+
+        <FieldError errors={state.fieldErrors?.amenities} />
+      </div>
+
       <div className="rounded-[24px] bg-[#f7fbff] p-4 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[#d7e5f7]">
         This creates the first hotel record for your authenticated owner/admin
-        account. Room creation, image uploads, and property amenities can be
-        added in the next product batch.
+        account with real contact details, a usable cover image, and property
+        amenities. After this, room creation and pricing management continue in
+        the owner inventory flow.
       </div>
 
       {state.status === "error" ? (

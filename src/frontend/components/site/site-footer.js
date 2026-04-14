@@ -24,8 +24,8 @@ const footerGroups = [
 export function SiteFooter() {
   return (
     <footer className="relative mt-20 overflow-hidden border-t border-white/8 bg-[linear-gradient(180deg,#12243b,#0f1d30)] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(155,205,245,0.18),transparent_30%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(155,205,245,0.54),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(155,205,245,0.18),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(155,205,245,0.54),transparent)]" />
 
       <div className="page-shell relative grid gap-10 py-14 lg:grid-cols-[1.45fr_0.9fr_0.9fr]">
         <div>

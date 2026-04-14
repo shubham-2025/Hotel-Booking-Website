@@ -7,6 +7,8 @@ import { SignUpForm } from "@/src/frontend/features/auth/sign-up-form.client";
 
 const errorMessages = {
   auth_unavailable: "Account creation is temporarily unavailable. Please try again shortly.",
+  email_rate_limited:
+    "Too many verification emails were requested recently. Please wait a few minutes before creating another account.",
   missing_fields: "Please complete the required sign up fields.",
   password_mismatch: "Password and confirm password must match.",
   password_too_short: "Password must be at least 6 characters long.",
@@ -28,6 +30,7 @@ function getStatus(errorCode) {
 
 export function SignUpScreen({ next = "/", errorCode = "" }) {
   const status = getStatus(errorCode);
+  const ownerAccessIntent = next === "/host";
 
   return (
     <AuthPanel
@@ -41,6 +44,14 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
         next && next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login"
       }
     >
+      {ownerAccessIntent ? (
+        <div className="mb-6 rounded-[24px] border border-[var(--color-line)] bg-white/80 px-4 py-4 text-sm leading-7 text-[var(--color-muted)]">
+          This creates the same common QuickStay account used for both traveler
+          and owner access. New accounts start as traveler accounts first, and
+          after login we will guide the start-hosting step from there.
+        </div>
+      ) : null}
+
       <form action={continueWithGoogleAction}>
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="intent" value="sign-up" />

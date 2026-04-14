@@ -28,6 +28,15 @@ export async function createOwnerHotelAction(_previousState, formData) {
     contactEmail: getFieldValue(formData, "contactEmail"),
     contactPhone: getFieldValue(formData, "contactPhone"),
     description: getFieldValue(formData, "description"),
+    heroImageUrl: getFieldValue(formData, "heroImageUrl"),
+    amenities: Array.from(
+      new Set(
+        formData
+          .getAll("amenities")
+          .map((value) => String(value || "").trim())
+          .filter(Boolean),
+      ),
+    ),
   };
 
   const parsedPayload = ownerHotelSchema.safeParse(payload);
@@ -40,38 +49,22 @@ export async function createOwnerHotelAction(_previousState, formData) {
     };
   }
 
+  let result;
+
   try {
-    const result = await createOwnerHotelRecord({
+    result = await createOwnerHotelRecord({
       ...parsedPayload.data,
       slugBase: buildHotelSlugBase(
         parsedPayload.data.name,
         parsedPayload.data.city,
       ),
     });
-
-    if (result.status === "created") {
-      revalidatePath("/owner");
-      revalidatePath("/owner/list-room");
-      revalidatePath("/owner/add-room");
-      revalidatePath("/owner/setup-hotel");
-      redirect("/owner/list-room");
-    }
-
-    if (result.status === "already_exists") {
-      redirect("/owner/list-room");
-    }
-
-    return {
-      status: "error",
-      message:
-        result.reason ||
-        "Hotel setup is temporarily unavailable. Please try again shortly.",
-      fieldErrors: {},
-    };
   } catch (error) {
     if (error instanceof AuthError) {
       redirect("/");
     }
+
+    console.error("createOwnerHotelAction failed", error);
 
     return {
       status: "error",
@@ -79,4 +72,25 @@ export async function createOwnerHotelAction(_previousState, formData) {
       fieldErrors: {},
     };
   }
+
+  if (result.status === "created") {
+    revalidatePath("/host");
+    revalidatePath("/owner");
+    revalidatePath("/owner/list-room");
+    revalidatePath("/owner/add-room");
+    revalidatePath("/owner/setup-hotel");
+    redirect("/owner/list-room");
+  }
+
+  if (result.status === "already_exists") {
+    redirect("/owner/list-room");
+  }
+
+  return {
+    status: "error",
+    message:
+      result.reason ||
+      "Hotel setup is temporarily unavailable. Please try again shortly.",
+    fieldErrors: {},
+  };
 }

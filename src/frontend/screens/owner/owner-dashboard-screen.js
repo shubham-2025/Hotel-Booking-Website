@@ -33,8 +33,8 @@ export async function OwnerDashboardScreen() {
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6">
           <p className="text-sm text-[var(--color-muted)]">
             Once Supabase access is available, this dashboard will load only the
-            hotel, rooms, and booking activity that belong to your management
-            account.
+            hotel, rooms, pricing, and booking activity that belong to your
+            management account.
           </p>
         </div>
       </div>
@@ -53,7 +53,7 @@ export async function OwnerDashboardScreen() {
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
           Your account has owner/admin access, but no hotel is linked to it yet.
           The next safe step is creating the hotel record that future rooms,
-          bookings, and owner analytics will attach to.
+          pricing, bookings, and owner analytics will attach to.
         </p>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
@@ -65,9 +65,9 @@ export async function OwnerDashboardScreen() {
               No hotel found for this owner account
             </h2>
             <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
-              We have stopped showing demo dashboard data here. As soon as a
-              hotel is created for this account, owner pages will start reading
-              real owner-scoped rooms and bookings.
+              As soon as a hotel is created for this account, the owner area
+              becomes ready for real room pricing, images, and listing
+              management.
             </p>
             <div className="mt-5">
               <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
@@ -82,8 +82,8 @@ export async function OwnerDashboardScreen() {
             </p>
             <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--color-muted)]">
               <p>1. Create the owner hotel record.</p>
-              <p>2. Attach rooms to that hotel.</p>
-              <p>3. The dashboard will then show real inventory and bookings.</p>
+              <p>2. Add the hotel cover image and property amenities.</p>
+              <p>3. Attach rooms, pricing, and listing media to that hotel.</p>
             </div>
           </div>
         </div>
@@ -106,7 +106,7 @@ export async function OwnerDashboardScreen() {
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
             {dashboardData.status === "no_rooms"
               ? "Your hotel is linked correctly, but no rooms are attached to it yet. This page is now reading your real owner account instead of demo data."
-              : "This dashboard is now reading real owner-scoped inventory and booking activity for the authenticated management account."}
+              : "This dashboard is now reading real owner-scoped inventory, pricing, and booking activity for the authenticated management account."}
           </p>
         </div>
 
@@ -118,26 +118,56 @@ export async function OwnerDashboardScreen() {
       </div>
 
       <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-5 shadow-[var(--shadow-soft)]">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-              Primary hotel
-            </p>
-            <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-              {primaryHotel?.name}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
-              {primaryHotel?.city} · {primaryHotel?.address}
-            </p>
+        <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="overflow-hidden rounded-[24px] border border-[var(--color-line)] bg-white">
+            <img
+              src={
+                primaryHotel?.heroImageUrl ||
+                "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
+              }
+              alt={primaryHotel?.name}
+              className="aspect-[4/3] w-full object-cover"
+            />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] ring-1 ring-[var(--color-line)]">
-              {formatHotelStatus(primaryHotel?.status)}
-            </span>
-            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-              {dashboardData.metrics.totalHotels} hotel
-              {dashboardData.metrics.totalHotels === 1 ? "" : "s"}
-            </span>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+                Primary hotel
+              </p>
+              <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+                {primaryHotel?.name}
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+                {primaryHotel?.city} | {primaryHotel?.address}
+              </p>
+              {primaryHotel?.description ? (
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-muted)]">
+                  {primaryHotel.description}
+                </p>
+              ) : null}
+              {primaryHotel?.amenities?.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {primaryHotel.amenities.map((amenity) => (
+                    <span
+                      key={amenity}
+                      className="rounded-full bg-white px-3 py-1 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                    >
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] ring-1 ring-[var(--color-line)]">
+                {formatHotelStatus(primaryHotel?.status)}
+              </span>
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+                {dashboardData.metrics.totalHotels} hotel
+                {dashboardData.metrics.totalHotels === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -180,6 +210,41 @@ export async function OwnerDashboardScreen() {
         </div>
       </div>
 
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Starting rate
+          </p>
+          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
+            {dashboardData.metrics.lowestNightlyRate
+              ? formatCurrency(dashboardData.metrics.lowestNightlyRate)
+              : "Not set"}
+          </p>
+        </div>
+
+        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Average nightly rate
+          </p>
+          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
+            {dashboardData.metrics.averageNightlyRate
+              ? formatCurrency(dashboardData.metrics.averageNightlyRate)
+              : "Not set"}
+          </p>
+        </div>
+
+        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Highest nightly rate
+          </p>
+          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
+            {dashboardData.metrics.highestNightlyRate
+              ? formatCurrency(dashboardData.metrics.highestNightlyRate)
+              : "Not set"}
+          </p>
+        </div>
+      </div>
+
       {dashboardData.status === "no_rooms" ? (
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-white p-6 shadow-[var(--shadow-soft)]">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
@@ -191,7 +256,8 @@ export async function OwnerDashboardScreen() {
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
             Your hotel is now ready for its first real room draft. Once you add
             inventory here, the dashboard and inventory pages will start showing
-            live owner-scoped room counts instead of the empty state.
+            live owner-scoped room counts and pricing health instead of the
+            empty state.
           </p>
           <div className="mt-5">
             <Link href="/owner/add-room" className="button-primary min-h-11 px-5">

@@ -48,6 +48,10 @@ export function EditRoomPanel({ room, hotel }) {
   );
   const [roomType, setRoomType] = useState(room.roomType);
   const [selectedAmenities, setSelectedAmenities] = useState(room.amenities || []);
+  const [retainedImageUrls, setRetainedImageUrls] = useState(
+    room.uploadedImages || [],
+  );
+  const [selectedImageNames, setSelectedImageNames] = useState([]);
   const [roomSummary, setRoomSummary] = useState({
     pricePerNight: String(room.pricePerNight || ""),
     guestCapacity: String(room.guestCapacity || "1"),
@@ -72,9 +76,23 @@ export function EditRoomPanel({ room, hotel }) {
     }));
   }
 
+  function removeExistingImage(imageUrl) {
+    setRetainedImageUrls((current) =>
+      current.filter((value) => value !== imageUrl),
+    );
+  }
+
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="roomId" value={room._id} />
+      {retainedImageUrls.map((imageUrl) => (
+        <input
+          key={imageUrl}
+          type="hidden"
+          name="existingImageUrls"
+          value={imageUrl}
+        />
+      ))}
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
@@ -231,8 +249,82 @@ export function EditRoomPanel({ room, hotel }) {
         <FieldError errors={state.fieldErrors?.amenities} />
       </div>
 
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-medium text-[var(--color-ink)]">Room photos</p>
+          <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+            Keep the best existing shots, remove anything outdated, and add new
+            JPG, PNG, or WEBP files here.
+          </p>
+        </div>
+
+        {retainedImageUrls.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {retainedImageUrls.map((imageUrl) => (
+              <div
+                key={imageUrl}
+                className="overflow-hidden rounded-[24px] border border-[var(--color-line)] bg-white"
+              >
+                <img
+                  src={imageUrl}
+                  alt={room.name || room.roomType}
+                  className="aspect-[4/3] w-full object-cover"
+                />
+                <div className="p-3">
+                  <button
+                    type="button"
+                    onClick={() => removeExistingImage(imageUrl)}
+                    className="button-secondary min-h-10 w-full"
+                  >
+                    Remove photo
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-[#f8fafc] p-4 text-sm leading-7 text-[var(--color-muted)]">
+            {room.usesFallbackImages
+              ? "No real uploaded room photos are attached yet. Public pages will continue using fallback visuals until you add images here."
+              : "No uploaded room photos are currently being retained in this edit session."}
+          </div>
+        )}
+
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-[var(--color-ink)]">
+            Add more photos
+          </span>
+          <input
+            type="file"
+            name="images"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="w-full rounded-2xl border border-dashed border-[var(--color-line)] bg-white px-4 py-4 text-sm text-[var(--color-muted)] outline-none file:mr-4 file:rounded-full file:border-0 file:bg-[var(--color-accent-soft)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--color-accent-strong)]"
+            onChange={(event) =>
+              setSelectedImageNames(
+                Array.from(event.target.files || []).map((file) => file.name),
+              )
+            }
+          />
+          {selectedImageNames.length ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedImageNames.map((fileName, index) => (
+                <span
+                  key={`${fileName}-${index}`}
+                  className="rounded-full bg-white px-3 py-1 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                >
+                  {fileName}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <FieldError errors={state.fieldErrors?.images} />
+        </label>
+      </div>
+
       <div className="rounded-3xl bg-[#f8fafc] p-4 text-sm leading-7 text-[var(--color-muted)]">
-        Publish and unpublish controls stay on the inventory page. This editor only updates room details and keeps image upload out of scope for this batch.
+        Publish and unpublish controls stay on the inventory page. This editor
+        now updates room details and room photos together.
       </div>
 
       {state.status === "error" ? (

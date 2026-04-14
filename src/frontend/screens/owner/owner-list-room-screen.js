@@ -160,6 +160,13 @@ export async function OwnerListRoomScreen() {
                       {room.description}
                     </p>
                   ) : null}
+                  <p className="mt-3 text-sm text-[var(--color-muted)]">
+                    {room.uploadedImages?.length
+                      ? `${room.uploadedImages.length} real photo${
+                          room.uploadedImages.length === 1 ? "" : "s"
+                        } uploaded`
+                      : "Fallback preview active until room photos are uploaded"}
+                  </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {room.amenities.map((amenity) => (
                       <span

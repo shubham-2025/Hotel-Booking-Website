@@ -7,6 +7,8 @@ import { SignInForm } from "@/src/frontend/features/auth/sign-in-form.client";
 
 const errorMessages = {
   auth_unavailable: "Sign in is temporarily unavailable. Please try again shortly.",
+  email_not_confirmed:
+    "Your email is not confirmed yet. Open the verification email first, then log in.",
   invalid_credentials: "We could not sign you in with those details.",
   missing_fields: "Please enter both email and password.",
   oauth_failed: "Google sign in could not be completed. Please try again.",
@@ -41,6 +43,7 @@ function getStatus(errorCode, noticeCode) {
 
 export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
   const status = getStatus(errorCode, noticeCode);
+  const ownerAccessIntent = next === "/host";
 
   return (
     <AuthPanel
@@ -56,6 +59,15 @@ export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
           : "/create-account"
       }
     >
+      {ownerAccessIntent ? (
+        <div className="mb-6 rounded-[24px] border border-[var(--color-line)] bg-white/80 px-4 py-4 text-sm leading-7 text-[var(--color-muted)]">
+          You are continuing through the owner access path. If this account is
+          already `owner` or `admin`, we will take you into the owner area
+          after login. If it is a new traveler account, we will show the start
+          hosting step clearly after login.
+        </div>
+      ) : null}
+
       <form action={continueWithGoogleAction}>
         <input type="hidden" name="next" value={next} />
         <input type="hidden" name="intent" value="sign-in" />

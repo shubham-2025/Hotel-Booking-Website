@@ -19,6 +19,31 @@ function buildRedirect(pathname, params = {}) {
   return query ? `${pathname}?${query}` : pathname;
 }
 
+function getAuthErrorCode(error, fallbackCode) {
+  const message = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+
+  if (
+    code === "over_email_send_rate_limit" ||
+    message.includes("email rate limit")
+  ) {
+    return "email_rate_limited";
+  }
+
+  if (message.includes("email not confirmed")) {
+    return "email_not_confirmed";
+  }
+
+  if (
+    code === "invalid_credentials" ||
+    message.includes("invalid login credentials")
+  ) {
+    return "invalid_credentials";
+  }
+
+  return fallbackCode;
+}
+
 export async function signInAction(formData) {
   const email = String(formData.get("email") || "")
     .trim()
@@ -42,7 +67,18 @@ export async function signInAction(formData) {
   });
 
   if (error) {
-    redirect(buildRedirect("/login", { error: "invalid_credentials", next }));
+    console.error("signInAction failed", {
+      code: error.code || "",
+      message: error.message || "",
+      email,
+    });
+
+    redirect(
+      buildRedirect("/login", {
+        error: getAuthErrorCode(error, "invalid_credentials"),
+        next,
+      }),
+    );
   }
 
   redirect(next);
@@ -78,6 +114,7 @@ export async function signUpAction(formData) {
   }
 
   const loginUrl = new URL("/login", env.siteUrl);
+  loginUrl.searchParams.set("next", next);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -92,10 +129,16 @@ export async function signUpAction(formData) {
   });
 
   if (error) {
+    console.error("signUpAction failed", {
+      code: error.code || "",
+      message: error.message || "",
+      email,
+    });
+
     const errorCode =
       error.message?.toLowerCase().includes("already registered")
         ? "email_in_use"
-        : "signup_failed";
+        : getAuthErrorCode(error, "signup_failed");
 
     redirect(buildRedirect("/create-account", { error: errorCode, next }));
   }
@@ -141,7 +184,17 @@ export async function forgotPasswordAction(formData) {
   });
 
   if (error) {
-    redirect(buildRedirect("/forgot-password", { error: "reset_failed" }));
+    console.error("forgotPasswordAction failed", {
+      code: error.code || "",
+      message: error.message || "",
+      email,
+    });
+
+    redirect(
+      buildRedirect("/forgot-password", {
+        error: getAuthErrorCode(error, "reset_failed"),
+      }),
+    );
   }
 
   redirect(buildRedirect("/forgot-password", { notice: "reset_email_sent" }));

@@ -76,8 +76,8 @@
   - secure reset-password recovery
 - Add a shared `/host` owner-access entry path so:
   - logged-out users are guided into common auth first
-  - guests understand how owner access works with the same account
-  - owners/admins can continue into hotel setup or the owner dashboard
+  - guests can activate self-serve owner access from the same account
+  - owners/admins are redirected into hotel setup or the owner dashboard automatically
 - Create `guest`, `owner`, `admin` roles.
 - Protect `/owner` routes with middleware and role checks.
 
@@ -89,11 +89,11 @@
 
 ### Phase 5: Owner workflows
 
-- Hotel bootstrap/create flow is complete.
+- Hotel bootstrap/create flow is complete with cover image and amenity setup.
 - Authenticated draft room creation is complete.
 - Authenticated room edit flow is complete.
 - Room publish / unpublish controls are complete.
-- Upload room images to Supabase Storage.
+- Room image upload to Supabase Storage is complete.
 - Add archive/delete actions for rooms.
 
 ### Phase 6: Email workflows

@@ -7,4 +7,6 @@ export const ownerHotelSchema = z.object({
   contactEmail: z.union([z.literal(""), z.email()]).default(""),
   contactPhone: z.string().trim().max(32).optional().default(""),
   description: z.string().trim().max(1000).optional().default(""),
+  heroImageUrl: z.union([z.literal(""), z.string().trim().url()]).default(""),
+  amenities: z.array(z.string().trim().min(1).max(60)).max(12).default([]),
 });

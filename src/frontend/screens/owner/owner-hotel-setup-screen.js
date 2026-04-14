@@ -48,22 +48,52 @@ export async function OwnerHotelSetupScreen() {
         </p>
 
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6 shadow-[var(--shadow-soft)]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-                Linked hotel
-              </p>
-              <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-                {hotelSetupData.primaryHotel?.name}
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
-                {hotelSetupData.primaryHotel?.city} | {hotelSetupData.primaryHotel?.address}
-              </p>
+          <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="overflow-hidden rounded-[24px] border border-[var(--color-line)] bg-white">
+              <img
+                src={
+                  hotelSetupData.primaryHotel?.heroImageUrl ||
+                  "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
+                }
+                alt={hotelSetupData.primaryHotel?.name}
+                className="aspect-[4/3] w-full object-cover"
+              />
             </div>
 
-            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] ring-1 ring-[var(--color-line)]">
-              {formatHotelStatus(hotelSetupData.primaryHotel?.status)}
-            </span>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+                  Linked hotel
+                </p>
+                <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+                  {hotelSetupData.primaryHotel?.name}
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+                  {hotelSetupData.primaryHotel?.city} | {hotelSetupData.primaryHotel?.address}
+                </p>
+                {hotelSetupData.primaryHotel?.description ? (
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-muted)]">
+                    {hotelSetupData.primaryHotel.description}
+                  </p>
+                ) : null}
+                {hotelSetupData.primaryHotel?.amenities?.length ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {hotelSetupData.primaryHotel.amenities.map((amenity) => (
+                      <span
+                        key={amenity}
+                        className="rounded-full bg-white px-3 py-1 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+                      >
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] ring-1 ring-[var(--color-line)]">
+                {formatHotelStatus(hotelSetupData.primaryHotel?.status)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -90,7 +120,8 @@ export async function OwnerHotelSetupScreen() {
       <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
         This is the first real owner bootstrap step. Once the hotel record is
         created, the owner dashboard and inventory pages will stop showing the
-        no-hotel onboarding state and will move into room-setup readiness.
+        no-hotel onboarding state and will move into room setup, pricing, and
+        listing readiness.
       </p>
 
       <div className="mt-8 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -104,8 +135,8 @@ export async function OwnerHotelSetupScreen() {
           </p>
           <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--color-muted)]">
             <p>1. The hotel is linked to your authenticated owner/admin account.</p>
-            <p>2. Owner dashboard starts reading the real hotel context.</p>
-            <p>3. Inventory page becomes ready for the first room setup step.</p>
+            <p>2. Owner dashboard starts reading the real hotel context and cover image.</p>
+            <p>3. Inventory page becomes ready for room setup, pricing, and listing media.</p>
           </div>
         </div>
       </div>

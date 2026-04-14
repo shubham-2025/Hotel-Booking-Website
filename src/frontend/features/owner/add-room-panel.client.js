@@ -57,6 +57,7 @@ export function AddRoomPanel({ hotel }) {
     bathroomCount: "1",
     description: "",
   });
+  const [selectedImageNames, setSelectedImageNames] = useState([]);
 
   function toggleAmenity(amenity) {
     setSelectedAmenities((current) =>
@@ -84,8 +85,8 @@ export function AddRoomPanel({ hotel }) {
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
           This form now creates a real room record for your authenticated hotel
-          context. New rooms stay in draft mode until later owner workflow
-          batches add publishing and image uploads.
+          context. New rooms stay in draft mode until you publish them, and can
+          now carry real room photos from day one.
         </p>
       </div>
 
@@ -254,10 +255,41 @@ export function AddRoomPanel({ hotel }) {
         <FieldError errors={state.fieldErrors?.amenities} />
       </div>
 
-      <div className="rounded-3xl bg-[#f8fafc] p-4 text-sm leading-7 text-[var(--color-muted)]">
-        Image uploads are intentionally not part of this batch. New rooms will
-        save safely with fallback visuals until storage upload support is added.
-      </div>
+      <label className="space-y-2">
+        <span className="text-sm font-medium text-[var(--color-ink)]">
+          Room photos
+        </span>
+        <input
+          type="file"
+          name="images"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="w-full rounded-2xl border border-dashed border-[var(--color-line)] bg-white px-4 py-4 text-sm text-[var(--color-muted)] outline-none file:mr-4 file:rounded-full file:border-0 file:bg-[var(--color-accent-soft)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[var(--color-accent-strong)]"
+          onChange={(event) =>
+            setSelectedImageNames(
+              Array.from(event.target.files || []).map((file) => file.name),
+            )
+          }
+        />
+        <p className="text-sm leading-7 text-[var(--color-muted)]">
+          Upload up to 6 JPG, PNG, or WEBP files. If you skip this for now, the
+          room will safely continue using fallback imagery until photos are
+          added later.
+        </p>
+        {selectedImageNames.length ? (
+          <div className="flex flex-wrap gap-2">
+            {selectedImageNames.map((fileName, index) => (
+              <span
+                key={`${fileName}-${index}`}
+                className="rounded-full bg-white px-3 py-1 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
+              >
+                {fileName}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <FieldError errors={state.fieldErrors?.images} />
+      </label>
 
       {state.status === "error" ? (
         <p className="rounded-[22px] bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-100">

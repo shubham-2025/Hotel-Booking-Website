@@ -8,6 +8,11 @@ import {
   setOwnerRoomAvailability,
   updateOwnerRoomRecord,
 } from "@/src/backend/repositories/owner-repository";
+import {
+  getRetainedRoomImageUrls,
+  getRoomImageFiles,
+  validateRoomImageSelection,
+} from "@/src/backend/storage/owner-room-image-storage";
 import { ownerRoomSchema } from "@/src/backend/validation/owner-room.schema";
 
 function getFieldValue(formData, key) {
@@ -38,47 +43,47 @@ function revalidateOwnerRoomPaths(roomId = "") {
   revalidatePath("/owner");
   revalidatePath("/owner/list-room");
   revalidatePath("/owner/add-room");
+  revalidatePath("/rooms");
   if (roomId) {
     revalidatePath(`/owner/rooms/${roomId}/edit`);
+    revalidatePath(`/rooms/${roomId}`);
   }
 }
 
 export async function createOwnerRoomAction(_previousState, formData) {
   const payload = getRoomPayload(formData);
+  const imageFiles = getRoomImageFiles(formData);
 
   const parsedPayload = ownerRoomSchema.safeParse(payload);
+  const imageErrors = validateRoomImageSelection({
+    files: imageFiles,
+  });
 
-  if (!parsedPayload.success) {
+  if (!parsedPayload.success || imageErrors.length) {
     return {
       status: "error",
       message: "Please review the room details before saving.",
-      fieldErrors: parsedPayload.error.flatten().fieldErrors,
+      fieldErrors: {
+        ...(parsedPayload.success
+          ? {}
+          : parsedPayload.error.flatten().fieldErrors),
+        ...(imageErrors.length ? { images: imageErrors } : {}),
+      },
     };
   }
 
+  let result;
+
   try {
-    const result = await createOwnerRoomRecord(parsedPayload.data);
-
-    if (result.status === "created") {
-      revalidateOwnerRoomPaths();
-      redirect("/owner/list-room");
-    }
-
-    if (result.status === "no_hotel") {
-      redirect("/owner/setup-hotel");
-    }
-
-    return {
-      status: "error",
-      message:
-        result.reason ||
-        "Room creation is temporarily unavailable. Please try again shortly.",
-      fieldErrors: {},
-    };
+    result = await createOwnerRoomRecord(parsedPayload.data, {
+      imageFiles,
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       redirect("/");
     }
+
+    console.error("createOwnerRoomAction failed", error);
 
     return {
       status: "error",
@@ -86,12 +91,35 @@ export async function createOwnerRoomAction(_previousState, formData) {
       fieldErrors: {},
     };
   }
+
+  if (result.status === "created") {
+    revalidateOwnerRoomPaths(result.room?._id || "");
+    redirect("/owner/list-room");
+  }
+
+  if (result.status === "no_hotel") {
+    redirect("/owner/setup-hotel");
+  }
+
+  return {
+    status: "error",
+    message:
+      result.reason ||
+      "Room creation is temporarily unavailable. Please try again shortly.",
+    fieldErrors: {},
+  };
 }
 
 export async function updateOwnerRoomAction(_previousState, formData) {
   const roomId = getFieldValue(formData, "roomId");
   const payload = getRoomPayload(formData);
+  const imageFiles = getRoomImageFiles(formData);
+  const retainedImageUrls = getRetainedRoomImageUrls(formData);
   const parsedPayload = ownerRoomSchema.safeParse(payload);
+  const imageErrors = validateRoomImageSelection({
+    files: imageFiles,
+    existingImageUrls: retainedImageUrls,
+  });
 
   if (!roomId) {
     return {
@@ -101,41 +129,32 @@ export async function updateOwnerRoomAction(_previousState, formData) {
     };
   }
 
-  if (!parsedPayload.success) {
+  if (!parsedPayload.success || imageErrors.length) {
     return {
       status: "error",
       message: "Please review the room details before saving.",
-      fieldErrors: parsedPayload.error.flatten().fieldErrors,
+      fieldErrors: {
+        ...(parsedPayload.success
+          ? {}
+          : parsedPayload.error.flatten().fieldErrors),
+        ...(imageErrors.length ? { images: imageErrors } : {}),
+      },
     };
   }
 
+  let result;
+
   try {
-    const result = await updateOwnerRoomRecord(roomId, parsedPayload.data);
-
-    if (result.status === "updated") {
-      revalidateOwnerRoomPaths(roomId);
-      redirect("/owner/list-room");
-    }
-
-    if (result.status === "no_hotel") {
-      redirect("/owner/setup-hotel");
-    }
-
-    if (result.status === "not_found") {
-      redirect("/owner/list-room");
-    }
-
-    return {
-      status: "error",
-      message:
-        result.reason ||
-        "Room update is temporarily unavailable. Please try again shortly.",
-      fieldErrors: {},
-    };
+    result = await updateOwnerRoomRecord(roomId, parsedPayload.data, {
+      imageFiles,
+      retainedImageUrls,
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       redirect("/");
     }
+
+    console.error("updateOwnerRoomAction failed", error);
 
     return {
       status: "error",
@@ -143,6 +162,27 @@ export async function updateOwnerRoomAction(_previousState, formData) {
       fieldErrors: {},
     };
   }
+
+  if (result.status === "updated") {
+    revalidateOwnerRoomPaths(roomId);
+    redirect("/owner/list-room");
+  }
+
+  if (result.status === "no_hotel") {
+    redirect("/owner/setup-hotel");
+  }
+
+  if (result.status === "not_found") {
+    redirect("/owner/list-room");
+  }
+
+  return {
+    status: "error",
+    message:
+      result.reason ||
+      "Room update is temporarily unavailable. Please try again shortly.",
+    fieldErrors: {},
+  };
 }
 
 export async function toggleOwnerRoomAvailabilityAction(formData) {
@@ -154,24 +194,28 @@ export async function toggleOwnerRoomAvailabilityAction(formData) {
     redirect("/owner/list-room");
   }
 
+  let result;
+
   try {
-    const result = await setOwnerRoomAvailability(roomId, shouldBeActive);
-
-    if (result.status === "updated") {
-      revalidateOwnerRoomPaths(roomId);
-      redirect("/owner/list-room");
-    }
-
-    if (result.status === "no_hotel") {
-      redirect("/owner/setup-hotel");
-    }
-
-    redirect("/owner/list-room");
+    result = await setOwnerRoomAvailability(roomId, shouldBeActive);
   } catch (error) {
     if (error instanceof AuthError) {
       redirect("/");
     }
 
+    console.error("toggleOwnerRoomAvailabilityAction failed", error);
+
     redirect("/owner/list-room");
   }
+
+  if (result.status === "updated") {
+    revalidateOwnerRoomPaths(roomId);
+    redirect("/owner/list-room");
+  }
+
+  if (result.status === "no_hotel") {
+    redirect("/owner/setup-hotel");
+  }
+
+  redirect("/owner/list-room");
 }

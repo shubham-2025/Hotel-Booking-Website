@@ -84,6 +84,20 @@ export function SiteHeader({ authState }) {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setIsMenuOpen(false);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [pathname]);
+
   function closeMenu() {
     setIsMenuOpen(false);
   }
@@ -162,16 +176,18 @@ export function SiteHeader({ authState }) {
                       </div>
                     </div>
 
-                    <Link
-                      href={ownerCtaHref}
-                      className={
-                        isManagementUser
-                          ? "button-primary min-h-11 px-5 whitespace-nowrap"
-                          : "button-secondary min-h-11 px-5 whitespace-nowrap"
-                      }
-                    >
-                      {ownerCtaLabel}
-                    </Link>
+                    {shouldShowOwnerEntryCta ? (
+                      <Link
+                        href={ownerCtaHref}
+                        className={
+                          isManagementUser
+                            ? "button-primary min-h-11 px-5 whitespace-nowrap"
+                            : "button-secondary min-h-11 px-5 whitespace-nowrap"
+                        }
+                      >
+                        {ownerCtaLabel}
+                      </Link>
+                    ) : null}
 
                     <form action="/auth/sign-out" method="post">
                       <button
