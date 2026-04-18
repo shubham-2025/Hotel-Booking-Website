@@ -54,6 +54,7 @@ function mapSupabaseRoom(row, hotel) {
     pricePerNight: Number(row.price_per_night),
     amenities: row.amenities || [],
     images: row.image_urls?.length ? row.image_urls : getFallbackRoomImages(),
+    usesFallbackImages: !(row.image_urls?.length),
     isAvailable: row.is_active ?? true,
     hotel: {
       _id: hotel.id,
@@ -68,16 +69,16 @@ function mapSupabaseRoom(row, hotel) {
   };
 }
 
-export async function getRooms(filters = {}) {
+async function getRealPublicRooms(filters = {}) {
   if (!hasSupabasePublicEnv()) {
-    return getFilteredFallbackRooms(filters);
+    return [];
   }
 
   try {
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
-      return getFilteredFallbackRooms(filters);
+      return [];
     }
 
     const { data: hotelData, error: hotelError } = await supabase
@@ -92,7 +93,7 @@ export async function getRooms(filters = {}) {
     const activeHotels = hotelData || [];
 
     if (!activeHotels.length) {
-      return getFilteredFallbackRooms(filters);
+      return [];
     }
 
     const activeHotelMap = new Map(activeHotels.map((hotel) => [hotel.id, hotel]));
@@ -110,20 +111,77 @@ export async function getRooms(filters = {}) {
       throw error;
     }
 
-    const mappedRooms = (data || [])
+    return applyRoomFilters(
+      (data || [])
       .map((row) => {
         const hotel = activeHotelMap.get(row.hotel_id);
         return hotel ? mapSupabaseRoom(row, hotel) : null;
       })
-      .filter(Boolean);
-
-    return applyRoomFilters(
-      mappedRooms.length ? mappedRooms : getFallbackRooms(),
+      .filter(Boolean),
       filters,
     );
   } catch {
-    return getFilteredFallbackRooms(filters);
+    return [];
   }
+}
+
+function buildPublicRoomInventorySnapshot(roomCollection, source, limit = 4) {
+  const cityNames = [...new Set(roomCollection.map((room) => room.hotel.city))];
+  const hotelIds = new Set(roomCollection.map((room) => room.hotel._id));
+  const averageNightlyRate = roomCollection.length
+    ? Math.round(
+        roomCollection.reduce(
+          (runningTotal, room) => runningTotal + room.pricePerNight,
+          0,
+        ) / roomCollection.length,
+      )
+    : 0;
+
+  const featuredRooms =
+    source === "real"
+      ? [...roomCollection]
+          .sort((left, right) => {
+            if (left.usesFallbackImages !== right.usesFallbackImages) {
+              return Number(left.usesFallbackImages) - Number(right.usesFallbackImages);
+            }
+
+            return left.hotel.city.localeCompare(right.hotel.city);
+          })
+          .slice(0, limit)
+      : roomCollection.slice(0, limit);
+
+  return {
+    source,
+    rooms: roomCollection,
+    featuredRooms,
+    totalPublicRooms: roomCollection.length,
+    activeCityCount: cityNames.length,
+    activeHotelCount: hotelIds.size,
+    averageNightlyRate,
+    featuredCities: cityNames.slice(0, 6),
+  };
+}
+
+export async function getPublicRoomInventorySnapshot({
+  filters = {},
+  limit = 4,
+} = {}) {
+  const realRooms = await getRealPublicRooms(filters);
+
+  if (realRooms.length) {
+    return buildPublicRoomInventorySnapshot(realRooms, "real", limit);
+  }
+
+  return buildPublicRoomInventorySnapshot(
+    getFilteredFallbackRooms(filters),
+    "fallback",
+    limit,
+  );
+}
+
+export async function getRooms(filters = {}) {
+  const snapshot = await getPublicRoomInventorySnapshot({ filters });
+  return snapshot.rooms;
 }
 
 export async function getRoomById(roomId) {

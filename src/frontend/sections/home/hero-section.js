@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { heroImage } from "@/src/frontend/assets";
-import { featuredCities } from "@/src/frontend/content/demo/site-demo-data";
+import { featuredCities as fallbackFeaturedCities } from "@/src/frontend/content/demo/site-demo-data";
 
-export function HeroSection() {
+export function HeroSection({ featuredCities = fallbackFeaturedCities }) {
   const router = useRouter();
   const [formState, setFormState] = useState({
     city: "",

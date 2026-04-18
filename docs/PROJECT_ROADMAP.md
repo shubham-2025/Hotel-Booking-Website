@@ -28,6 +28,7 @@
 - Owners can now create draft rooms under their authenticated hotel context.
 - Owners can now edit hotel details and toggle hotel public visibility.
 - Public room reads now require both an active room and an active hotel context.
+- Home page featured inventory now prefers real active public rooms before using demo fallback content.
 
 ## 2. Target Stack
 
@@ -67,6 +68,7 @@
 
 - Seed `hotels`, `rooms`, `profiles` and `bookings`.
 - Replace remaining dummy UI reads with Supabase queries.
+- Home page featured stays now prefer live active public inventory, while demo content remains only as a safe backup.
 - Add owner-specific queries for only that owner’s hotels and rooms.
 
 ### Phase 3: Auth and roles

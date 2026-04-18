@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPublicRoomInventorySnapshot } from "@/src/backend/repositories/rooms-repository";
 import { siteAssets } from "@/src/frontend/assets";
 import { HeroSection } from "@/src/frontend/sections/home/hero-section";
 import { HotelCard } from "@/src/frontend/components/site/hotel-card";
@@ -6,8 +7,8 @@ import { NewsletterForm } from "@/src/frontend/features/newsletter/newsletter-fo
 import { SectionHeading } from "@/src/frontend/components/shared/section-heading";
 import {
   exclusiveOffers,
+  featuredCities as fallbackFeaturedCities,
   roomHighlights,
-  rooms,
   testimonials,
 } from "@/src/frontend/content/demo/site-demo-data";
 
@@ -41,7 +42,7 @@ const featuredLabels = [
   "Top rated",
 ];
 
-const staySignals = [
+const fallbackStaySignals = [
   {
     value: "4.8/5",
     label: "average traveler rating",
@@ -75,21 +76,76 @@ function RatingStars({ rating }) {
   );
 }
 
-export function HomeScreen() {
+function getInventoryStaySignals(snapshot) {
+  if (snapshot.source !== "real") {
+    return fallbackStaySignals;
+  }
+
+  return [
+    {
+      value: String(snapshot.totalPublicRooms),
+      label: "active public rooms",
+    },
+    {
+      value: String(snapshot.activeHotelCount),
+      label: "live hotel listings",
+    },
+    {
+      value: String(snapshot.activeCityCount),
+      label: "active city choices",
+    },
+  ];
+}
+
+export async function HomeScreen() {
+  const inventorySnapshot = await getPublicRoomInventorySnapshot({ limit: 4 });
+  const featuredRooms = inventorySnapshot.featuredRooms;
+  const heroCities =
+    inventorySnapshot.source === "real"
+      ? [
+          ...inventorySnapshot.featuredCities,
+          ...fallbackFeaturedCities.filter(
+            (city) => !inventorySnapshot.featuredCities.includes(city),
+          ),
+        ].slice(0, 6)
+      : fallbackFeaturedCities;
+  const staySignals = getInventoryStaySignals(inventorySnapshot);
+  const featuredHeading =
+    inventorySnapshot.source === "real"
+      ? {
+          eyebrow: "Live stays",
+          title: "Active rooms that are now coming from real QuickStay inventory",
+          description:
+            "These featured stays are now pulled from active hotel and room inventory, so the home page reflects what travelers can actually browse right now.",
+        }
+      : {
+          eyebrow: "Featured stays",
+          title:
+            "Popular rooms for city breaks, short work trips, and easy weekend escapes",
+          description:
+            "These highlighted stays give the home page a strong first impression while keeping room discovery simple and visually consistent.",
+        };
+
   return (
     <div className="home-canvas">
-      <HeroSection />
+      <HeroSection featuredCities={heroCities} />
 
       <section className="section-space">
         <div className="page-shell">
           <SectionHeading
-            eyebrow="Featured stays"
-            title="Popular rooms for city breaks, short work trips, and easy weekend escapes"
-            description="These highlighted stays give the home page a strong first impression while keeping room discovery simple and visually consistent."
+            eyebrow={featuredHeading.eyebrow}
+            title={featuredHeading.title}
+            description={featuredHeading.description}
           />
 
+          {inventorySnapshot.source === "real" ? (
+            <p className="mt-5 inline-flex rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
+              Live active inventory
+            </p>
+          ) : null}
+
           <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {rooms.slice(0, 4).map((room, index) => (
+            {featuredRooms.map((room, index) => (
               <HotelCard
                 key={room._id}
                 room={room}
