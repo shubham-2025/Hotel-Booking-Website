@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "@/src/backend/auth/auth-errors";
-import { createOwnerHotelRecord } from "@/src/backend/repositories/owner-repository";
+import {
+  createOwnerHotelRecord,
+  setOwnerHotelAvailability,
+  updateOwnerHotelRecord,
+} from "@/src/backend/repositories/owner-repository";
 import { ownerHotelSchema } from "@/src/backend/validation/owner-hotel.schema";
 
 function buildHotelSlugBase(name, city) {
@@ -20,8 +24,8 @@ function getFieldValue(formData, key) {
   return String(formData.get(key) || "").trim();
 }
 
-export async function createOwnerHotelAction(_previousState, formData) {
-  const payload = {
+function getHotelPayload(formData) {
+  return {
     name: getFieldValue(formData, "name"),
     city: getFieldValue(formData, "city"),
     address: getFieldValue(formData, "address"),
@@ -38,6 +42,21 @@ export async function createOwnerHotelAction(_previousState, formData) {
       ),
     ),
   };
+}
+
+function revalidateOwnerHotelPaths() {
+  revalidatePath("/host");
+  revalidatePath("/");
+  revalidatePath("/rooms");
+  revalidatePath("/rooms/[id]", "page");
+  revalidatePath("/owner");
+  revalidatePath("/owner/list-room");
+  revalidatePath("/owner/add-room");
+  revalidatePath("/owner/setup-hotel");
+}
+
+export async function createOwnerHotelAction(_previousState, formData) {
+  const payload = getHotelPayload(formData);
 
   const parsedPayload = ownerHotelSchema.safeParse(payload);
 
@@ -74,11 +93,7 @@ export async function createOwnerHotelAction(_previousState, formData) {
   }
 
   if (result.status === "created") {
-    revalidatePath("/host");
-    revalidatePath("/owner");
-    revalidatePath("/owner/list-room");
-    revalidatePath("/owner/add-room");
-    revalidatePath("/owner/setup-hotel");
+    revalidateOwnerHotelPaths();
     redirect("/owner/list-room");
   }
 
@@ -93,4 +108,95 @@ export async function createOwnerHotelAction(_previousState, formData) {
       "Hotel setup is temporarily unavailable. Please try again shortly.",
     fieldErrors: {},
   };
+}
+
+export async function updateOwnerHotelAction(_previousState, formData) {
+  const hotelId = getFieldValue(formData, "hotelId");
+  const payload = getHotelPayload(formData);
+  const parsedPayload = ownerHotelSchema.safeParse(payload);
+
+  if (!hotelId) {
+    return {
+      status: "error",
+      message: "We could not identify which hotel to update. Please reopen hotel setup.",
+      fieldErrors: {},
+    };
+  }
+
+  if (!parsedPayload.success) {
+    return {
+      status: "error",
+      message: "Please review the highlighted hotel details.",
+      fieldErrors: parsedPayload.error.flatten().fieldErrors,
+    };
+  }
+
+  let result;
+
+  try {
+    result = await updateOwnerHotelRecord(hotelId, parsedPayload.data);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect("/");
+    }
+
+    console.error("updateOwnerHotelAction failed", error);
+
+    return {
+      status: "error",
+      message: "Unable to update your hotel right now. Please try again shortly.",
+      fieldErrors: {},
+    };
+  }
+
+  if (result.status === "updated") {
+    revalidateOwnerHotelPaths();
+    redirect("/owner/setup-hotel");
+  }
+
+  if (result.status === "no_hotel" || result.status === "not_found") {
+    redirect("/owner/setup-hotel");
+  }
+
+  return {
+    status: "error",
+    message:
+      result.reason ||
+      "Hotel update is temporarily unavailable. Please try again shortly.",
+    fieldErrors: {},
+  };
+}
+
+export async function toggleOwnerHotelAvailabilityAction(formData) {
+  const hotelId = getFieldValue(formData, "hotelId");
+  const nextState = getFieldValue(formData, "nextState");
+  const shouldBeActive = nextState === "publish";
+
+  if (!hotelId || (nextState !== "publish" && nextState !== "unpublish")) {
+    redirect("/owner/setup-hotel");
+  }
+
+  let result;
+
+  try {
+    result = await setOwnerHotelAvailability(hotelId, shouldBeActive);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect("/");
+    }
+
+    console.error("toggleOwnerHotelAvailabilityAction failed", error);
+    redirect("/owner/setup-hotel");
+  }
+
+  if (result.status === "updated") {
+    revalidateOwnerHotelPaths();
+    redirect("/owner/setup-hotel");
+  }
+
+  if (result.status === "no_hotel" || result.status === "not_found") {
+    redirect("/owner/setup-hotel");
+  }
+
+  redirect("/owner/setup-hotel");
 }

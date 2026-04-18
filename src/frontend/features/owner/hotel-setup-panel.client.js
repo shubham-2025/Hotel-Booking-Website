@@ -2,7 +2,10 @@
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { createOwnerHotelAction } from "@/src/backend/owner/owner-hotel-actions";
+import {
+  createOwnerHotelAction,
+  updateOwnerHotelAction,
+} from "@/src/backend/owner/owner-hotel-actions";
 import { heroImage } from "@/src/frontend/assets";
 
 const hotelAmenityOptions = [
@@ -28,8 +31,9 @@ function FieldError({ errors }) {
   return <p className="text-sm text-rose-600">{errors[0]}</p>;
 }
 
-function SubmitButton() {
+function SubmitButton({ mode }) {
   const { pending } = useFormStatus();
+  const isEditMode = mode === "edit";
 
   return (
     <button
@@ -37,21 +41,30 @@ function SubmitButton() {
       disabled={pending}
       className="button-primary min-h-12 px-5 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? "Creating hotel..." : "Create hotel"}
+      {pending
+        ? isEditMode
+          ? "Saving hotel..."
+          : "Creating hotel..."
+        : isEditMode
+          ? "Save hotel changes"
+          : "Create hotel"}
     </button>
   );
 }
 
-export function HotelSetupPanel({ profile }) {
+export function HotelSetupPanel({ profile, hotel = null, mode = "create" }) {
+  const action = mode === "edit" ? updateOwnerHotelAction : createOwnerHotelAction;
   const [state, formAction] = useActionState(
-    createOwnerHotelAction,
+    action,
     initialFormState,
   );
-  const [heroImageUrl, setHeroImageUrl] = useState("");
-  const [selectedAmenities, setSelectedAmenities] = useState([
-    "Free WiFi",
-    "Breakfast included",
-  ]);
+  const [heroImageUrl, setHeroImageUrl] = useState(hotel?.heroImageUrl || "");
+  const [selectedAmenities, setSelectedAmenities] = useState(
+    hotel?.amenities?.length
+      ? hotel.amenities
+      : ["Free WiFi", "Breakfast included"],
+  );
+  const isEditMode = mode === "edit";
 
   function toggleAmenity(amenity) {
     setSelectedAmenities((current) =>
@@ -63,6 +76,8 @@ export function HotelSetupPanel({ profile }) {
 
   return (
     <form action={formAction} className="space-y-6">
+      {isEditMode ? <input type="hidden" name="hotelId" value={hotel?._id || ""} /> : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm font-medium text-[var(--color-ink)]">
@@ -72,6 +87,7 @@ export function HotelSetupPanel({ profile }) {
             type="text"
             name="name"
             required
+            defaultValue={hotel?.name || ""}
             className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
             placeholder="QuickStay Riverside House"
           />
@@ -86,6 +102,7 @@ export function HotelSetupPanel({ profile }) {
             type="text"
             name="city"
             required
+            defaultValue={hotel?.city || ""}
             className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
             placeholder="Jaipur"
           />
@@ -101,6 +118,7 @@ export function HotelSetupPanel({ profile }) {
           type="text"
           name="address"
           required
+          defaultValue={hotel?.address || ""}
           className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
           placeholder="123 Riverfront Road, Jaipur 302001"
         />
@@ -115,7 +133,7 @@ export function HotelSetupPanel({ profile }) {
           <input
             type="email"
             name="contactEmail"
-            defaultValue={profile?.email || ""}
+            defaultValue={hotel?.contactEmail || profile?.email || ""}
             className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
             placeholder="owner@hotel.com"
           />
@@ -129,7 +147,7 @@ export function HotelSetupPanel({ profile }) {
           <input
             type="text"
             name="contactPhone"
-            defaultValue={profile?.phone || ""}
+            defaultValue={hotel?.contactPhone || profile?.phone || ""}
             className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
             placeholder="+91 98765 43210"
           />
@@ -144,6 +162,7 @@ export function HotelSetupPanel({ profile }) {
         <textarea
           name="description"
           rows="5"
+          defaultValue={hotel?.description || ""}
           className="w-full rounded-2xl border border-[var(--color-line)] bg-white px-4 py-3 outline-none focus:border-[var(--color-highlight)]"
           placeholder="Share the property's style, neighborhood, and the kind of stay guests can expect."
         />
@@ -164,8 +183,9 @@ export function HotelSetupPanel({ profile }) {
             placeholder="https://images.example.com/your-hotel-cover.jpg"
           />
           <p className="text-sm leading-7 text-[var(--color-muted)]">
-            Add a real hotel cover image URL now so the owner area feels more
-            complete. You can refine this later if needed.
+            {isEditMode
+              ? "Update the live cover image URL whenever your property branding or main listing visual changes."
+              : "Add a real hotel cover image URL now so the owner area feels more complete. You can refine this later if needed."}
           </p>
           <FieldError errors={state.fieldErrors?.heroImageUrl} />
         </div>
@@ -181,8 +201,9 @@ export function HotelSetupPanel({ profile }) {
               Live preview
             </p>
             <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
-              This cover helps your owner dashboard and property setup feel more
-              like a real listing instead of a placeholder record.
+              {isEditMode
+                ? "This preview helps you confirm that the public-facing hotel cover still matches your current property branding."
+                : "This cover helps your owner dashboard and property setup feel more like a real listing instead of a placeholder record."}
             </p>
           </div>
         </div>
@@ -221,10 +242,9 @@ export function HotelSetupPanel({ profile }) {
       </div>
 
       <div className="rounded-[24px] bg-[#f7fbff] p-4 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[#d7e5f7]">
-        This creates the first hotel record for your authenticated owner/admin
-        account with real contact details, a usable cover image, and property
-        amenities. After this, room creation and pricing management continue in
-        the owner inventory flow.
+        {isEditMode
+          ? "These updates change the real hotel record linked to your authenticated owner/admin account. Active public rooms will read this hotel context once the hotel itself is published."
+          : "This creates the first hotel record for your authenticated owner/admin account with real contact details, a usable cover image, and property amenities. After this, room creation and pricing management continue in the owner inventory flow."}
       </div>
 
       {state.status === "error" ? (
@@ -233,7 +253,7 @@ export function HotelSetupPanel({ profile }) {
         </p>
       ) : null}
 
-      <SubmitButton />
+      <SubmitButton mode={mode} />
     </form>
   );
 }

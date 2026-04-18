@@ -360,6 +360,51 @@ async function getOwnerRoomContext(roomId) {
   };
 }
 
+async function getOwnerManagedHotelContext(hotelId = "") {
+  const ownerHotelData = await getOwnerHotelContext();
+
+  if (ownerHotelData.status !== "ready") {
+    return {
+      status: ownerHotelData.status,
+      user: ownerHotelData.user,
+      profile: ownerHotelData.profile,
+      hotels: ownerHotelData.hotels,
+      primaryHotel: ownerHotelData.primaryHotel,
+      hotel: ownerHotelData.primaryHotel,
+      supabase: ownerHotelData.supabase,
+      reason: ownerHotelData.reason,
+    };
+  }
+
+  const matchedHotel =
+    ownerHotelData.hotels.find((hotel) => hotel._id === hotelId) ||
+    ownerHotelData.primaryHotel;
+
+  if (!matchedHotel) {
+    return {
+      status: "not_found",
+      user: ownerHotelData.user,
+      profile: ownerHotelData.profile,
+      hotels: ownerHotelData.hotels,
+      primaryHotel: ownerHotelData.primaryHotel,
+      hotel: null,
+      supabase: ownerHotelData.supabase,
+      reason: "",
+    };
+  }
+
+  return {
+    status: "ready",
+    user: ownerHotelData.user,
+    profile: ownerHotelData.profile,
+    hotels: ownerHotelData.hotels,
+    primaryHotel: ownerHotelData.primaryHotel,
+    hotel: matchedHotel,
+    supabase: ownerHotelData.supabase,
+    reason: "",
+  };
+}
+
 export async function getOwnerHotelBootstrapData() {
   try {
     const ownerHotelData = await getOwnerHotelContext();
@@ -458,6 +503,101 @@ export async function createOwnerHotelRecord(payload) {
     profile,
     hotel: null,
     reason: "Unable to create a unique hotel record right now. Please try again.",
+  };
+}
+
+export async function updateOwnerHotelRecord(hotelId, payload) {
+  const hotelData = await getOwnerManagedHotelContext(hotelId);
+
+  if (hotelData.status !== "ready") {
+    return {
+      status: hotelData.status,
+      profile: hotelData.profile,
+      hotel: hotelData.hotel,
+      reason: hotelData.reason,
+    };
+  }
+
+  const { profile, supabase, hotel } = hotelData;
+  const writeClient = createSupabaseAdminClient() || supabase;
+
+  const { data, error } = await writeClient
+    .from("hotels")
+    .update({
+      name: payload.name,
+      description: payload.description || null,
+      city: payload.city,
+      address: payload.address,
+      contact_email: payload.contactEmail || null,
+      contact_phone: payload.contactPhone || null,
+      hero_image_url: payload.heroImageUrl || null,
+      amenities: payload.amenities || [],
+    })
+    .eq("id", hotel._id)
+    .eq("owner_id", hotelData.user.id)
+    .select(OWNER_HOTEL_COLUMNS)
+    .single();
+
+  if (error) {
+    return {
+      status: "unavailable",
+      profile,
+      hotel,
+      reason:
+        error.message ||
+        "Unable to update your hotel right now. Please try again shortly.",
+    };
+  }
+
+  return {
+    status: "updated",
+    profile,
+    hotel: mapHotel(data),
+    reason: "",
+  };
+}
+
+export async function setOwnerHotelAvailability(hotelId, shouldBeActive) {
+  const hotelData = await getOwnerManagedHotelContext(hotelId);
+
+  if (hotelData.status !== "ready") {
+    return {
+      status: hotelData.status,
+      profile: hotelData.profile,
+      hotel: hotelData.hotel,
+      reason: hotelData.reason,
+    };
+  }
+
+  const { profile, supabase, hotel } = hotelData;
+  const writeClient = createSupabaseAdminClient() || supabase;
+
+  const { data, error } = await writeClient
+    .from("hotels")
+    .update({
+      status: shouldBeActive ? "active" : "draft",
+    })
+    .eq("id", hotel._id)
+    .eq("owner_id", hotelData.user.id)
+    .select(OWNER_HOTEL_COLUMNS)
+    .single();
+
+  if (error) {
+    return {
+      status: "unavailable",
+      profile,
+      hotel,
+      reason:
+        error.message ||
+        "Unable to update your hotel status right now. Please try again shortly.",
+    };
+  }
+
+  return {
+    status: "updated",
+    profile,
+    hotel: mapHotel(data),
+    reason: "",
   };
 }
 

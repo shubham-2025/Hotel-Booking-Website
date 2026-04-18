@@ -26,6 +26,8 @@
 - Owner-scoped hotel and room reads are now connected to authenticated Supabase data.
 - Owners can now bootstrap their first hotel record from the owner area.
 - Owners can now create draft rooms under their authenticated hotel context.
+- Owners can now edit hotel details and toggle hotel public visibility.
+- Public room reads now require both an active room and an active hotel context.
 
 ## 2. Target Stack
 
@@ -90,6 +92,8 @@
 ### Phase 5: Owner workflows
 
 - Hotel bootstrap/create flow is complete with cover image and amenity setup.
+- Authenticated hotel edit flow is complete.
+- Hotel publish / unpublish controls are complete.
 - Authenticated draft room creation is complete.
 - Authenticated room edit flow is complete.
 - Room publish / unpublish controls are complete.

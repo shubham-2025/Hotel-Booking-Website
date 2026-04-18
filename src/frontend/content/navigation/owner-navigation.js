@@ -7,7 +7,7 @@ export const ownerNavigation = [
   {
     label: "Hotel Setup",
     href: "/owner/setup-hotel",
-    description: "Branding, contact details and property basics",
+    description: "Edit branding, contact details and public visibility",
   },
   {
     label: "Add Room",

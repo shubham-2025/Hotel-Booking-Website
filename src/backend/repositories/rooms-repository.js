@@ -47,9 +47,7 @@ function getFilteredFallbackRooms(filters = {}) {
   return applyRoomFilters(getFallbackRooms(), filters);
 }
 
-function mapSupabaseRoom(row) {
-  const hotel = Array.isArray(row.hotels) ? row.hotels[0] : row.hotels;
-
+function mapSupabaseRoom(row, hotel) {
   return {
     _id: row.id,
     roomType: row.room_type,
@@ -58,11 +56,11 @@ function mapSupabaseRoom(row) {
     images: row.image_urls?.length ? row.image_urls : getFallbackRoomImages(),
     isAvailable: row.is_active ?? true,
     hotel: {
-      _id: hotel?.id || "demo-hotel",
-      name: hotel?.name || "QuickStay Signature Hotel",
-      city: hotel?.city || "New York",
-      address: hotel?.address || "Address pending",
-      slug: hotel?.slug || "quickstay-signature-hotel",
+      _id: hotel.id,
+      name: hotel.name,
+      city: hotel.city,
+      address: hotel.address,
+      slug: hotel.slug,
       owner: {
         image: getFallbackOwnerImage(),
       },
@@ -82,22 +80,45 @@ export async function getRooms(filters = {}) {
       return getFilteredFallbackRooms(filters);
     }
 
+    const { data: hotelData, error: hotelError } = await supabase
+      .from("hotels")
+      .select("id, name, slug, city, address")
+      .eq("status", "active");
+
+    if (hotelError) {
+      throw hotelError;
+    }
+
+    const activeHotels = hotelData || [];
+
+    if (!activeHotels.length) {
+      return getFilteredFallbackRooms(filters);
+    }
+
+    const activeHotelMap = new Map(activeHotels.map((hotel) => [hotel.id, hotel]));
+    const activeHotelIds = activeHotels.map((hotel) => hotel.id);
+
     const { data, error } = await supabase
       .from("rooms")
       .select(
-        "id, room_type, price_per_night, amenities, image_urls, is_active, hotels ( id, name, slug, city, address )",
+        "id, hotel_id, room_type, price_per_night, amenities, image_urls, is_active",
       )
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .in("hotel_id", activeHotelIds);
 
     if (error) {
       throw error;
     }
 
-    const fallbackRooms = getFallbackRooms();
-    const mappedRooms = (data || []).map(mapSupabaseRoom);
+    const mappedRooms = (data || [])
+      .map((row) => {
+        const hotel = activeHotelMap.get(row.hotel_id);
+        return hotel ? mapSupabaseRoom(row, hotel) : null;
+      })
+      .filter(Boolean);
 
     return applyRoomFilters(
-      mappedRooms.length ? mappedRooms : fallbackRooms,
+      mappedRooms.length ? mappedRooms : getFallbackRooms(),
       filters,
     );
   } catch {

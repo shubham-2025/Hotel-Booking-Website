@@ -110,11 +110,16 @@ export async function OwnerDashboardScreen() {
           </p>
         </div>
 
-        {dashboardData.rooms.length ? (
-          <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
-            View room inventory
+        <div className="flex flex-wrap gap-3">
+          <Link href="/owner/setup-hotel" className="button-secondary min-h-11 px-5">
+            Manage hotel
           </Link>
-        ) : null}
+          {dashboardData.rooms.length ? (
+            <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
+              View room inventory
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-5 shadow-[var(--shadow-soft)]">
