@@ -44,7 +44,12 @@ function applyRoomFilters(roomCollection, filters = {}) {
 }
 
 function getFilteredFallbackRooms(filters = {}) {
-  return applyRoomFilters(getFallbackRooms(), filters);
+  return applyRoomFilters(getFallbackRooms(), filters).map((room) => ({
+    ...room,
+    inventorySource: "fallback",
+    isBookablePublic: false,
+    usesFallbackImages: false,
+  }));
 }
 
 function mapSupabaseRoom(row, hotel) {
@@ -52,10 +57,13 @@ function mapSupabaseRoom(row, hotel) {
     _id: row.id,
     roomType: row.room_type,
     pricePerNight: Number(row.price_per_night),
+    guestCapacity: row.guest_capacity || 0,
     amenities: row.amenities || [],
     images: row.image_urls?.length ? row.image_urls : getFallbackRoomImages(),
     usesFallbackImages: !(row.image_urls?.length),
     isAvailable: row.is_active ?? true,
+    inventorySource: "real",
+    isBookablePublic: true,
     hotel: {
       _id: hotel.id,
       name: hotel.name,
@@ -102,7 +110,7 @@ async function getRealPublicRooms(filters = {}) {
     const { data, error } = await supabase
       .from("rooms")
       .select(
-        "id, hotel_id, room_type, price_per_night, amenities, image_urls, is_active",
+        "id, hotel_id, room_type, price_per_night, guest_capacity, amenities, image_urls, is_active",
       )
       .eq("is_active", true)
       .in("hotel_id", activeHotelIds);

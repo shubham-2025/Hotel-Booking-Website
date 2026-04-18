@@ -1,16 +1,12 @@
 import { notFound } from "next/navigation";
+import { getCurrentProfile } from "@/src/backend/auth/get-current-profile";
+import { getCurrentUser } from "@/src/backend/auth/get-current-user";
 import { BookingInquiryForm } from "@/src/frontend/features/booking/booking-inquiry-form.client";
 import { SectionHeading } from "@/src/frontend/components/shared/section-heading";
 import { formatCurrency } from "@/src/frontend/lib/format";
 import { siteAssets } from "@/src/frontend/assets";
 import { roomHighlights } from "@/src/frontend/content/demo/site-demo-data";
 import { getRoomById } from "@/lib/data";
-
-const requestAssurances = [
-  "Share your preferred dates and guest count in one quick form.",
-  "Use the notes field for arrival timing, twin-bed requests, or special needs.",
-  "The hotel can review your request and continue the conversation by email.",
-];
 
 export async function RoomDetailsScreen({ params }) {
   const { id } = await params;
@@ -19,6 +15,25 @@ export async function RoomDetailsScreen({ params }) {
   if (!room) {
     notFound();
   }
+
+  const currentUser = await getCurrentUser();
+  let currentProfile = null;
+
+  try {
+    currentProfile = await getCurrentProfile(currentUser);
+  } catch {}
+
+  const requestAssurances = room.isBookablePublic
+    ? [
+        "Log in first so the booking is saved directly to your traveler account.",
+        "Choose valid stay dates and a guest count that fits the room capacity.",
+        "Your reservation is created as a pending booking foundation for later confirmation and payment steps.",
+      ]
+    : [
+        "Share your preferred dates and guest count in one quick form.",
+        "Use the notes field for arrival timing, twin-bed requests, or special needs.",
+        "The hotel can review your request and continue the conversation by email.",
+      ];
 
   return (
     <section className="section-space">
@@ -119,12 +134,20 @@ export async function RoomDetailsScreen({ params }) {
           </div>
 
           <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-            <BookingInquiryForm room={room} />
+            <BookingInquiryForm
+              room={room}
+              traveler={currentProfile}
+              isAuthenticated={Boolean(currentUser)}
+            />
 
             <div className="surface-card rounded-[32px] p-6">
-              <p className="eyebrow-label">Before you send</p>
+              <p className="eyebrow-label">
+                {room.isBookablePublic ? "Before you book" : "Before you send"}
+              </p>
               <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-                Keep your request simple and specific
+                {room.isBookablePublic
+                  ? "Booking works best when the stay details are clear"
+                  : "Keep your request simple and specific"}
               </h2>
               <div className="mt-5 space-y-3">
                 {requestAssurances.map((item) => (

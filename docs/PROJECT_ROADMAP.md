@@ -29,6 +29,7 @@
 - Owners can now edit hotel details and toggle hotel public visibility.
 - Public room reads now require both an active room and an active hotel context.
 - Home page featured inventory now prefers real active public rooms before using demo fallback content.
+- Active public rooms now support real authenticated booking creation into the `bookings` table.
 
 ## 2. Target Stack
 
@@ -87,7 +88,7 @@
 
 ### Phase 4: Booking engine
 
-- Convert inquiry flow into real booking creation.
+- Real authenticated booking creation foundation is complete for active public rooms.
 - Add availability checks to prevent overlapping bookings.
 - Add booking status updates and payment state transitions.
 
