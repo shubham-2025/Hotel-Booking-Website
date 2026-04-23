@@ -15,7 +15,11 @@ const OWNER_HOTEL_COLUMNS =
 const OWNER_ROOM_COLUMNS =
   "id, hotel_id, name, room_type, description, price_per_night, guest_capacity, bedroom_count, bathroom_count, amenities, image_urls, is_active, created_at, updated_at";
 const OWNER_BOOKING_COLUMNS =
-  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, created_at";
+  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at, updated_at";
+const OWNER_BOOKING_STATUS_TRANSITIONS = {
+  pending: new Set(["confirmed", "cancelled"]),
+  confirmed: new Set(["completed"]),
+};
 
 function getBaseMetrics() {
   return {
@@ -37,6 +41,7 @@ function getUnavailableState(profile, reason) {
     hotels: [],
     primaryHotel: null,
     rooms: [],
+    bookings: [],
     recentBookings: [],
     metrics: getBaseMetrics(),
     reason,
@@ -107,7 +112,9 @@ function mapBooking(row, room) {
     paymentMethod: row.payment_method || "",
     checkInDate: row.check_in_date,
     checkOutDate: row.check_out_date,
+    notes: row.notes || "",
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     room,
     hotel: room?.hotel || null,
     guest: {
@@ -194,6 +201,7 @@ async function getOwnerScopedInventory() {
       hotels: hotelContext.hotels,
       primaryHotel: hotelContext.primaryHotel,
       rooms: [],
+      bookings: [],
       recentBookings: [],
       metrics: hotelContext.metrics,
       reason: hotelContext.reason,
@@ -249,6 +257,7 @@ async function getOwnerScopedInventory() {
       hotels,
       primaryHotel,
       rooms: [],
+      bookings: [],
       recentBookings: [],
       metrics,
       reason: "",
@@ -278,6 +287,7 @@ async function getOwnerScopedInventory() {
     hotels,
     primaryHotel,
     rooms,
+    bookings: recentBookings,
     recentBookings,
     metrics: {
       ...metrics,
@@ -287,6 +297,88 @@ async function getOwnerScopedInventory() {
         0,
       ),
     },
+    reason: "",
+  };
+}
+
+function canOwnerUpdateBookingStatus(currentStatus, nextStatus) {
+  return Boolean(
+    OWNER_BOOKING_STATUS_TRANSITIONS[currentStatus]?.has(nextStatus),
+  );
+}
+
+async function getOwnerManagedBookingContext(bookingId) {
+  const ownerHotelData = await getOwnerHotelContext();
+
+  if (ownerHotelData.status === "unavailable") {
+    return {
+      status: "unavailable",
+      profile: ownerHotelData.profile,
+      booking: null,
+      reason: ownerHotelData.reason,
+      supabase: null,
+    };
+  }
+
+  if (ownerHotelData.status === "no_hotel") {
+    return {
+      status: "no_hotel",
+      profile: ownerHotelData.profile,
+      booking: null,
+      reason: "",
+      supabase: ownerHotelData.supabase,
+    };
+  }
+
+  const { profile, supabase } = ownerHotelData;
+  const { data: bookingRow, error: bookingError } = await supabase
+    .from("bookings")
+    .select(OWNER_BOOKING_COLUMNS)
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (bookingError) {
+    return {
+      status: "unavailable",
+      profile,
+      booking: null,
+      reason:
+        bookingError.message ||
+        "Owner booking management is temporarily unavailable.",
+      supabase,
+    };
+  }
+
+  if (!bookingRow) {
+    return {
+      status: "not_found",
+      profile,
+      booking: null,
+      reason: "",
+      supabase,
+    };
+  }
+
+  const roomData = await getOwnerRoomContext(bookingRow.room_id);
+
+  if (roomData.status !== "ready" || !roomData.room) {
+    return {
+      status: roomData.status === "unavailable" ? "unavailable" : "not_found",
+      profile,
+      booking: null,
+      reason:
+        roomData.reason ||
+        "This booking is not available in the current owner scope.",
+      supabase,
+    };
+  }
+
+  return {
+    status: "ready",
+    profile,
+    booking: mapBooking(bookingRow, roomData.room),
+    bookingRow,
+    supabase,
     reason: "",
   };
 }
@@ -909,4 +1001,108 @@ export async function getOwnerRoomsData() {
       "Owner room inventory is temporarily unavailable. Please try again shortly.",
     );
   }
+}
+
+export async function getOwnerBookingsData() {
+  try {
+    const ownerData = await getOwnerScopedInventory();
+
+    if (ownerData.status !== "ready") {
+      return {
+        status: ownerData.status,
+        profile: ownerData.profile,
+        hotels: ownerData.hotels,
+        primaryHotel: ownerData.primaryHotel,
+        bookings: ownerData.bookings || [],
+        metrics: ownerData.metrics,
+        reason: ownerData.reason,
+      };
+    }
+
+    if (!ownerData.bookings.length) {
+      return {
+        status: "empty",
+        profile: ownerData.profile,
+        hotels: ownerData.hotels,
+        primaryHotel: ownerData.primaryHotel,
+        bookings: [],
+        metrics: ownerData.metrics,
+        reason: "",
+      };
+    }
+
+    return {
+      status: "ready",
+      profile: ownerData.profile,
+      hotels: ownerData.hotels,
+      primaryHotel: ownerData.primaryHotel,
+      bookings: ownerData.bookings,
+      metrics: ownerData.metrics,
+      reason: "",
+    };
+  } catch {
+    const profile = await getOwnerProfileOrNull();
+    return {
+      ...getUnavailableState(
+        profile,
+        "Owner bookings are temporarily unavailable. Please try again shortly.",
+      ),
+      bookings: [],
+    };
+  }
+}
+
+export async function updateOwnerBookingStatus(bookingId, nextStatus) {
+  const bookingData = await getOwnerManagedBookingContext(bookingId);
+
+  if (bookingData.status !== "ready") {
+    return {
+      status: bookingData.status,
+      profile: bookingData.profile,
+      booking: bookingData.booking,
+      reason: bookingData.reason,
+    };
+  }
+
+  const { profile, booking, bookingRow, supabase } = bookingData;
+
+  if (!canOwnerUpdateBookingStatus(bookingRow.status, nextStatus)) {
+    return {
+      status: "invalid_transition",
+      profile,
+      booking,
+      reason: `Booking status cannot move from ${bookingRow.status} to ${nextStatus}.`,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({
+      status: nextStatus,
+    })
+    .eq("id", bookingId)
+    .select(OWNER_BOOKING_COLUMNS)
+    .single();
+
+  if (error) {
+    return {
+      status: "unavailable",
+      profile,
+      booking,
+      reason:
+        error.message ||
+        "Unable to update the booking status right now. Please try again shortly.",
+    };
+  }
+
+  return {
+    status: "updated",
+    profile,
+    booking: {
+      ...booking,
+      status: data.status,
+      updatedAt: data.updated_at,
+    },
+    reason: "",
+  };
 }

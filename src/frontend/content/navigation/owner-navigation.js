@@ -19,4 +19,9 @@ export const ownerNavigation = [
     href: "/owner/list-room",
     description: "Review listings, status, pricing and media",
   },
+  {
+    label: "Bookings",
+    href: "/owner/bookings",
+    description: "Review traveler stays and update booking status",
+  },
 ];

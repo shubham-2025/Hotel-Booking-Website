@@ -115,6 +115,11 @@ export async function OwnerDashboardScreen() {
             Manage hotel
           </Link>
           {dashboardData.rooms.length ? (
+            <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
+              Manage bookings
+            </Link>
+          ) : null}
+          {dashboardData.rooms.length ? (
             <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
               View room inventory
             </Link>
@@ -281,6 +286,9 @@ export async function OwnerDashboardScreen() {
                 Activity stream
               </h2>
             </div>
+            <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
+              Open booking desk
+            </Link>
           </div>
 
           {dashboardData.recentBookings.length ? (
@@ -305,15 +313,36 @@ export async function OwnerDashboardScreen() {
                     <div className="text-sm font-medium text-[var(--color-muted)]">
                       {formatCurrency(booking.totalPrice)}
                     </div>
-                    <span
-                      className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                        booking.paymentStatus === "paid"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {booking.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`rounded-full px-3 py-2 text-xs font-semibold ${
+                          booking.status === "confirmed"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : booking.status === "completed"
+                              ? "bg-sky-100 text-sky-700"
+                              : booking.status === "cancelled"
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-2 text-xs font-semibold ${
+                          booking.paymentStatus === "paid"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : booking.paymentStatus === "refunded"
+                              ? "bg-slate-200 text-slate-700"
+                              : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {booking.paymentStatus === "paid"
+                          ? "Paid"
+                          : booking.paymentStatus === "refunded"
+                            ? "Refunded"
+                            : "Unpaid"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

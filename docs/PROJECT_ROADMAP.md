@@ -32,6 +32,7 @@
 - Active public rooms now support real authenticated booking creation into the `bookings` table.
 - Booking creation now blocks overlapping date conflicts against existing pending or confirmed bookings for the same room.
 - `/my-bookings` now reads real authenticated traveler bookings instead of demo fallback booking cards.
+- Owners can now review real bookings for their own rooms and move bookings through the first safe status transitions.
 
 ## 2. Target Stack
 
@@ -93,7 +94,9 @@
 - Real authenticated booking creation foundation is complete for active public rooms.
 - Availability checks now block overlapping pending/confirmed bookings for the same room.
 - Traveler booking history now loads from real authenticated bookings on `/my-bookings`.
-- Add booking status updates and payment state transitions.
+- Owner-side booking visibility is now live for owner-scoped rooms.
+- Basic owner booking status updates now support `pending -> confirmed`, `pending -> cancelled`, and `confirmed -> completed`.
+- Add payment state transitions.
 
 ### Phase 5: Owner workflows
 
