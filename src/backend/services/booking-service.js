@@ -29,11 +29,12 @@ export async function handleBookingPost(request) {
 
     if (
       result.status === "not_bookable" ||
+      result.status === "conflict" ||
       result.status === "invalid_dates" ||
       result.status === "invalid_guests"
     ) {
       return {
-        status: 400,
+        status: result.status === "conflict" ? 409 : 400,
         body: {
           message: result.reason,
         },

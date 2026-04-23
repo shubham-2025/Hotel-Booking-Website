@@ -30,6 +30,7 @@
 - Public room reads now require both an active room and an active hotel context.
 - Home page featured inventory now prefers real active public rooms before using demo fallback content.
 - Active public rooms now support real authenticated booking creation into the `bookings` table.
+- Booking creation now blocks overlapping date conflicts against existing pending or confirmed bookings for the same room.
 
 ## 2. Target Stack
 
@@ -89,7 +90,7 @@
 ### Phase 4: Booking engine
 
 - Real authenticated booking creation foundation is complete for active public rooms.
-- Add availability checks to prevent overlapping bookings.
+- Availability checks now block overlapping pending/confirmed bookings for the same room.
 - Add booking status updates and payment state transitions.
 
 ### Phase 5: Owner workflows

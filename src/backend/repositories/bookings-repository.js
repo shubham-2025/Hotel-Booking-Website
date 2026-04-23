@@ -1,6 +1,9 @@
+import { createSupabaseAdminClient } from "@/src/backend/auth/supabase-admin-client";
 import { createSupabaseServerClient } from "@/src/backend/auth/supabase-server-client";
 import { hasSupabasePublicEnv } from "@/src/backend/config/env";
 import { getFallbackBookings } from "@/src/backend/repositories/demo-fallback-repository";
+
+const BLOCKING_BOOKING_STATUSES = ["pending", "confirmed"];
 
 export async function getBookings() {
   return getFallbackBookings();
@@ -23,6 +26,55 @@ function getNightCount(checkInDate, checkOutDate) {
     (parseUtcDate(checkOutDate).getTime() - parseUtcDate(checkInDate).getTime()) /
       millisecondsPerDay,
   );
+}
+
+async function getBookingConflict({ roomId, checkInDate, checkOutDate }) {
+  const adminClient = createSupabaseAdminClient();
+
+  if (!adminClient) {
+    return {
+      status: "unavailable",
+      booking: null,
+      reason:
+        "Trusted availability validation is temporarily unavailable right now.",
+    };
+  }
+
+  const { data, error } = await adminClient
+    .from("bookings")
+    .select("id, status, check_in_date, check_out_date")
+    .eq("room_id", roomId)
+    .in("status", BLOCKING_BOOKING_STATUSES)
+    .lt("check_in_date", checkOutDate)
+    .gt("check_out_date", checkInDate)
+    .limit(1);
+
+  if (error) {
+    return {
+      status: "unavailable",
+      booking: null,
+      reason:
+        error.message ||
+        "We could not verify room availability right now. Please try again shortly.",
+    };
+  }
+
+  const conflictingBooking = data?.[0] || null;
+
+  if (!conflictingBooking) {
+    return {
+      status: "clear",
+      booking: null,
+      reason: "",
+    };
+  }
+
+  return {
+    status: "conflict",
+    booking: conflictingBooking,
+    reason:
+      "These dates are no longer available for this room. Please choose a different stay window.",
+  };
 }
 
 export async function createBookingRecord(payload) {
@@ -140,6 +192,28 @@ export async function createBookingRecord(payload) {
       status: "invalid_guests",
       booking: null,
       reason: `This room allows up to ${roomRow.guest_capacity} guest${roomRow.guest_capacity === 1 ? "" : "s"}.`,
+    };
+  }
+
+  const bookingConflict = await getBookingConflict({
+    roomId: roomRow.id,
+    checkInDate: payload.checkInDate,
+    checkOutDate: payload.checkOutDate,
+  });
+
+  if (bookingConflict.status === "unavailable") {
+    return {
+      status: "unavailable",
+      booking: null,
+      reason: bookingConflict.reason,
+    };
+  }
+
+  if (bookingConflict.status === "conflict") {
+    return {
+      status: "conflict",
+      booking: null,
+      reason: bookingConflict.reason,
     };
   }
 
