@@ -1,12 +1,183 @@
 import { createSupabaseAdminClient } from "@/src/backend/auth/supabase-admin-client";
 import { createSupabaseServerClient } from "@/src/backend/auth/supabase-server-client";
 import { hasSupabasePublicEnv } from "@/src/backend/config/env";
-import { getFallbackBookings } from "@/src/backend/repositories/demo-fallback-repository";
+import { getFallbackRoomImages } from "@/src/backend/repositories/demo-fallback-repository";
 
 const BLOCKING_BOOKING_STATUSES = ["pending", "confirmed"];
+const TRAVELER_BOOKING_COLUMNS =
+  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at";
+const TRAVELER_ROOM_COLUMNS = "id, hotel_id, name, room_type, image_urls";
+const TRAVELER_HOTEL_COLUMNS = "id, name, city, address";
+
+function getUnavailableBookingsState(reason) {
+  return {
+    status: "unavailable",
+    bookings: [],
+    reason,
+  };
+}
+
+function mapTravelerBooking(row, room, hotel) {
+  const uploadedImages = room?.image_urls || [];
+  const roomName = room?.name || room?.room_type || "Booked room";
+
+  return {
+    _id: row.id,
+    checkInDate: row.check_in_date,
+    checkOutDate: row.check_out_date,
+    guests: row.guests,
+    totalPrice: Number(row.total_price || 0),
+    status: row.status || "pending",
+    paymentStatus: row.payment_status || "unpaid",
+    paymentMethod: row.payment_method || "",
+    notes: row.notes || "",
+    createdAt: row.created_at,
+    room: {
+      _id: room?.id || row.room_id || "",
+      name: roomName,
+      roomType: room?.room_type || roomName,
+      images: uploadedImages.length ? uploadedImages : getFallbackRoomImages(),
+      usesFallbackImages: uploadedImages.length === 0,
+    },
+    hotel: {
+      _id: hotel?.id || "",
+      name: hotel?.name || "Hotel unavailable",
+      city: hotel?.city || "",
+      address: hotel?.address || "Address unavailable",
+    },
+  };
+}
+
+async function getTravelerRooms(readClient, roomIds) {
+  if (!roomIds.length) {
+    return {
+      rows: [],
+      error: null,
+    };
+  }
+
+  const { data, error } = await readClient
+    .from("rooms")
+    .select(TRAVELER_ROOM_COLUMNS)
+    .in("id", roomIds);
+
+  return {
+    rows: data || [],
+    error,
+  };
+}
+
+async function getTravelerHotels(readClient, hotelIds) {
+  if (!hotelIds.length) {
+    return {
+      rows: [],
+      error: null,
+    };
+  }
+
+  const { data, error } = await readClient
+    .from("hotels")
+    .select(TRAVELER_HOTEL_COLUMNS)
+    .in("id", hotelIds);
+
+  return {
+    rows: data || [],
+    error,
+  };
+}
 
 export async function getBookings() {
-  return getFallbackBookings();
+  if (!hasSupabasePublicEnv()) {
+    return getUnavailableBookingsState(
+      "Supabase booking configuration is not available right now.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return getUnavailableBookingsState(
+      "Authenticated booking access is temporarily unavailable.",
+    );
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      status: "unauthenticated",
+      bookings: [],
+      reason: "Please log in to view your bookings.",
+    };
+  }
+
+  const readClient = createSupabaseAdminClient() || supabase;
+  const { data: bookingRows, error: bookingsError } = await readClient
+    .from("bookings")
+    .select(TRAVELER_BOOKING_COLUMNS)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (bookingsError) {
+    return getUnavailableBookingsState(
+      bookingsError.message ||
+        "We could not load your bookings right now. Please try again shortly.",
+    );
+  }
+
+  const bookings = bookingRows || [];
+
+  if (!bookings.length) {
+    return {
+      status: "empty",
+      bookings: [],
+      reason: "",
+    };
+  }
+
+  const roomIds = [...new Set(bookings.map((booking) => booking.room_id).filter(Boolean))];
+  const { rows: roomRows, error: roomsError } = await getTravelerRooms(
+    readClient,
+    roomIds,
+  );
+
+  if (roomsError) {
+    return getUnavailableBookingsState(
+      roomsError.message ||
+        "We could not load the room details for your bookings right now.",
+    );
+  }
+
+  const roomMap = new Map(roomRows.map((room) => [room.id, room]));
+  const hotelIds = [
+    ...new Set(roomRows.map((room) => room.hotel_id).filter(Boolean)),
+  ];
+  const { rows: hotelRows, error: hotelsError } = await getTravelerHotels(
+    readClient,
+    hotelIds,
+  );
+
+  if (hotelsError) {
+    return getUnavailableBookingsState(
+      hotelsError.message ||
+        "We could not load the hotel details for your bookings right now.",
+    );
+  }
+
+  const hotelMap = new Map(hotelRows.map((hotel) => [hotel.id, hotel]));
+
+  return {
+    status: "ready",
+    bookings: bookings.map((booking) => {
+      const room = roomMap.get(booking.room_id) || null;
+      const hotel = room ? hotelMap.get(room.hotel_id) || null : null;
+      return mapTravelerBooking(booking, room, hotel);
+    }),
+    reason: "",
+  };
 }
 
 function parseUtcDate(value) {

@@ -31,6 +31,7 @@
 - Home page featured inventory now prefers real active public rooms before using demo fallback content.
 - Active public rooms now support real authenticated booking creation into the `bookings` table.
 - Booking creation now blocks overlapping date conflicts against existing pending or confirmed bookings for the same room.
+- `/my-bookings` now reads real authenticated traveler bookings instead of demo fallback booking cards.
 
 ## 2. Target Stack
 
@@ -91,6 +92,7 @@
 
 - Real authenticated booking creation foundation is complete for active public rooms.
 - Availability checks now block overlapping pending/confirmed bookings for the same room.
+- Traveler booking history now loads from real authenticated bookings on `/my-bookings`.
 - Add booking status updates and payment state transitions.
 
 ### Phase 5: Owner workflows
