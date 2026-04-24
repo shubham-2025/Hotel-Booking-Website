@@ -33,6 +33,7 @@
 - Booking creation now blocks overlapping date conflicts against existing pending or confirmed bookings for the same room.
 - `/my-bookings` now reads real authenticated traveler bookings instead of demo fallback booking cards.
 - Owners can now review real bookings for their own rooms and move bookings through the first safe status transitions.
+- Booking lifecycle emails now send for booking creation and owner-driven booking status updates when Resend is configured.
 
 ## 2. Target Stack
 
@@ -111,9 +112,11 @@
 
 ### Phase 6: Email workflows
 
-- Send booking inquiry receipt to guest.
-- Send owner notification emails.
-- Add booking confirmation, cancellation and payment emails.
+- Send booking-created email to traveler.
+- Send new booking notification email to owner.
+- Send booking confirmation, cancellation, and completion emails to traveler.
+- Add booking inquiry receipt to guest.
+- Add payment-related emails.
 
 ### Phase 7: Deployment and ops
 

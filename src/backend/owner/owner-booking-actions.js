@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "@/src/backend/auth/auth-errors";
 import { updateOwnerBookingStatus } from "@/src/backend/repositories/owner-repository";
+import { sendBookingStatusEmail } from "@/src/backend/services/booking-email-service";
 
 const ALLOWED_NEXT_STATUSES = new Set(["confirmed", "cancelled", "completed"]);
 const NOTICE_CODES_BY_STATUS = {
@@ -51,6 +52,12 @@ export async function updateOwnerBookingStatusAction(formData) {
   }
 
   if (result.status === "updated") {
+    try {
+      await sendBookingStatusEmail(result.notificationContext);
+    } catch (error) {
+      console.error("sendBookingStatusEmail failed", error);
+    }
+
     revalidatePath("/owner");
     revalidatePath("/owner/bookings");
     revalidatePath("/my-bookings");

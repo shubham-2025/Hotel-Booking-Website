@@ -124,6 +124,73 @@ function mapBooking(row, room) {
   };
 }
 
+async function getTravelerNotificationProfile(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  const adminClient = createSupabaseAdminClient();
+
+  if (!adminClient) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await adminClient
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      return null;
+    }
+
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildOwnerBookingNotificationContext({
+  booking,
+  bookingRow,
+  nextStatus,
+  travelerProfile,
+}) {
+  return {
+    event: nextStatus,
+    traveler: {
+      email: travelerProfile?.email || "",
+      fullName: travelerProfile?.full_name || "",
+    },
+    owner: {
+      email: booking.hotel?.contactEmail || "",
+    },
+    room: {
+      name: booking.room?.name || booking.room?.roomType || "Booked room",
+      roomType: booking.room?.roomType || booking.room?.name || "",
+    },
+    hotel: {
+      name: booking.hotel?.name || "Hotel unavailable",
+      city: booking.hotel?.city || "",
+      address: booking.hotel?.address || "",
+      contactEmail: booking.hotel?.contactEmail || "",
+    },
+    booking: {
+      id: booking._id,
+      checkInDate: booking.checkInDate,
+      checkOutDate: booking.checkOutDate,
+      guests: booking.guests,
+      totalPrice: booking.totalPrice,
+      status: nextStatus,
+      paymentStatus: booking.paymentStatus,
+      notes: booking.notes || "",
+      previousStatus: bookingRow.status,
+    },
+  };
+}
+
 async function getOwnerHotelContext() {
   const { user, profile } = await requireOwner();
 
@@ -1095,6 +1162,8 @@ export async function updateOwnerBookingStatus(bookingId, nextStatus) {
     };
   }
 
+  const travelerProfile = await getTravelerNotificationProfile(bookingRow.user_id);
+
   return {
     status: "updated",
     profile,
@@ -1103,6 +1172,16 @@ export async function updateOwnerBookingStatus(bookingId, nextStatus) {
       status: data.status,
       updatedAt: data.updated_at,
     },
+    notificationContext: buildOwnerBookingNotificationContext({
+      booking: {
+        ...booking,
+        status: data.status,
+        updatedAt: data.updated_at,
+      },
+      bookingRow,
+      nextStatus: data.status,
+      travelerProfile,
+    }),
     reason: "",
   };
 }

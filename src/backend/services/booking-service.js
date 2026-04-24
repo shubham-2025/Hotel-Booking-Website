@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import { createBookingRecord } from "@/src/backend/repositories/bookings-repository";
+import { sendBookingCreatedEmails } from "@/src/backend/services/booking-email-service";
 import { bookingCreateSchema } from "@/src/backend/validation/booking-create.schema";
 
 export async function handleBookingPost(request) {
@@ -8,6 +9,12 @@ export async function handleBookingPost(request) {
     const result = await createBookingRecord(payload);
 
     if (result.status === "created") {
+      try {
+        await sendBookingCreatedEmails(result.notificationContext);
+      } catch (error) {
+        console.error("sendBookingCreatedEmails failed", error);
+      }
+
       return {
         status: 201,
         body: {

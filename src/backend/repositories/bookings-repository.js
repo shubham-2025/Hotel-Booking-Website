@@ -8,6 +8,7 @@ const TRAVELER_BOOKING_COLUMNS =
   "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at";
 const TRAVELER_ROOM_COLUMNS = "id, hotel_id, name, room_type, image_urls";
 const TRAVELER_HOTEL_COLUMNS = "id, name, city, address";
+const TRAVELER_PROFILE_COLUMNS = "full_name, email";
 
 function getUnavailableBookingsState(reason) {
   return {
@@ -46,6 +47,32 @@ function mapTravelerBooking(row, room, hotel) {
       address: hotel?.address || "Address unavailable",
     },
   };
+}
+
+function getRoomDisplayName(room) {
+  return room?.name || room?.room_type || room?.roomType || "Booked room";
+}
+
+async function getCurrentTravelerProfile(readClient, userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await readClient
+      .from("profiles")
+      .select(TRAVELER_PROFILE_COLUMNS)
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      return null;
+    }
+
+    return data || null;
+  } catch {
+    return null;
+  }
 }
 
 async function getTravelerRooms(readClient, roomIds) {
@@ -282,7 +309,7 @@ export async function createBookingRecord(payload) {
 
   const { data: roomRow, error: roomError } = await supabase
     .from("rooms")
-    .select("id, hotel_id, room_type, price_per_night, guest_capacity")
+    .select("id, hotel_id, name, room_type, price_per_night, guest_capacity")
     .eq("id", payload.roomId)
     .eq("is_active", true)
     .maybeSingle();
@@ -307,7 +334,7 @@ export async function createBookingRecord(payload) {
 
   const { data: hotelRow, error: hotelError } = await supabase
     .from("hotels")
-    .select("id, name, status")
+    .select("id, name, city, address, contact_email, status")
     .eq("id", roomRow.hotel_id)
     .eq("status", "active")
     .maybeSingle();
@@ -390,6 +417,8 @@ export async function createBookingRecord(payload) {
 
   const nightCount = getNightCount(payload.checkInDate, payload.checkOutDate);
   const totalPrice = Number(roomRow.price_per_night) * nightCount;
+  const travelerProfile = await getCurrentTravelerProfile(supabase, user.id);
+  const roomName = getRoomDisplayName(roomRow);
 
   const { data: bookingRow, error: bookingError } = await supabase
     .from("bookings")
@@ -433,11 +462,48 @@ export async function createBookingRecord(payload) {
       notes: bookingRow.notes || "",
       room: {
         _id: roomRow.id,
+        name: roomName,
         roomType: roomRow.room_type,
       },
       hotel: {
         _id: hotelRow.id,
         name: hotelRow.name,
+        city: hotelRow.city || "",
+        address: hotelRow.address || "",
+      },
+    },
+    notificationContext: {
+      event: "created",
+      traveler: {
+        email: travelerProfile?.email || user.email || "",
+        fullName:
+          travelerProfile?.full_name ||
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          "",
+      },
+      owner: {
+        email: hotelRow.contact_email || "",
+      },
+      room: {
+        name: roomName,
+        roomType: roomRow.room_type,
+      },
+      hotel: {
+        name: hotelRow.name,
+        city: hotelRow.city || "",
+        address: hotelRow.address || "",
+        contactEmail: hotelRow.contact_email || "",
+      },
+      booking: {
+        id: bookingRow.id,
+        checkInDate: bookingRow.check_in_date,
+        checkOutDate: bookingRow.check_out_date,
+        guests: bookingRow.guests,
+        totalPrice: Number(bookingRow.total_price || 0),
+        status: bookingRow.status,
+        paymentStatus: bookingRow.payment_status,
+        notes: bookingRow.notes || "",
       },
     },
     reason: "",
