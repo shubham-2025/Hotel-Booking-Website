@@ -1,23 +1,76 @@
 import { ZodError } from "zod";
 import { env } from "@/src/backend/config/env";
-import { getResendClient } from "@/src/backend/email/resend-client";
+import {
+  escapeEmailHtml,
+  renderTransactionalEmail,
+  sendTransactionalEmail,
+} from "@/src/backend/email/transactional-email";
 import { saveBookingInquiry } from "@/src/backend/repositories/booking-inquiries-repository";
 import { bookingInquirySchema } from "@/src/backend/validation/booking-inquiry.schema";
 
 export async function handleBookingInquiryPost(request) {
   try {
     const payload = bookingInquirySchema.parse(await request.json());
-    const resend = getResendClient();
 
     const storedInDatabase = await saveBookingInquiry(payload);
 
     let emailQueued = false;
 
-    if (resend && env.notificationEmail) {
-      await resend.emails.send({
-        from: env.resendFromEmail,
+    if (env.notificationEmail) {
+      emailQueued = await sendTransactionalEmail({
         to: env.notificationEmail,
         subject: `Booking inquiry for ${payload.hotelName}`,
+        html: renderTransactionalEmail({
+          preheader: "A traveler submitted a new booking inquiry.",
+          eyebrow: "Inquiry received",
+          accentLabel: "New lead",
+          title: "A new traveler wants this stay",
+          lead: `QuickStay captured a booking inquiry for ${payload.hotelName}. Review the details below and continue the conversation by email.`,
+          summaryRows: [
+            {
+              label: "Traveler",
+              value: payload.name,
+            },
+            {
+              label: "Traveler email",
+              value: payload.email,
+            },
+            {
+              label: "Phone",
+              value: payload.phone || "-",
+            },
+            {
+              label: "Hotel",
+              value: payload.hotelName,
+            },
+            {
+              label: "Room",
+              value: payload.roomType,
+            },
+            {
+              label: "Check-in",
+              value: payload.checkInDate,
+            },
+            {
+              label: "Check-out",
+              value: payload.checkOutDate,
+            },
+            {
+              label: "Guests",
+              value: `${payload.guests}`,
+            },
+          ],
+          contentBlocks: [
+            {
+              title: "Traveler notes",
+              html: `<p style="margin: 0;">${escapeEmailHtml(
+                payload.message || "No extra notes were shared in this inquiry.",
+              )}</p>`,
+            },
+          ],
+          closingText:
+            "This message came from the public booking inquiry flow, not from a confirmed booking.",
+        }),
         text: [
           `Name: ${payload.name}`,
           `Email: ${payload.email}`,
@@ -29,8 +82,6 @@ export async function handleBookingInquiryPost(request) {
           `Notes: ${payload.message || "-"}`,
         ].join("\n"),
       });
-
-      emailQueued = true;
     }
 
     if (!storedInDatabase && !emailQueued) {
@@ -38,7 +89,7 @@ export async function handleBookingInquiryPost(request) {
         status: 503,
         body: {
           message:
-            "Inquiry route is ready, but Supabase/Resend environment variables still need to be configured.",
+            "Inquiry route is ready, but Supabase/email environment variables still need to be configured.",
         },
       };
     }

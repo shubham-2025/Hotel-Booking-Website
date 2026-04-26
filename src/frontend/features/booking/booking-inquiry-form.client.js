@@ -2,33 +2,16 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-
-function FeedbackMessage({ feedback }) {
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <p
-      className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
-        feedback.type === "success"
-          ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-          : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
-      }`}
-    >
-      {feedback.message}
-    </p>
-  );
-}
+import { toast } from "sonner";
 
 function TravelerIdentityCard({ traveler }) {
   return (
     <div className="mt-4 rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
       <p className="font-semibold text-[var(--color-ink)]">
-        Booking as {traveler?.full_name || traveler?.email || "signed-in traveler"}
+        Reserving as {traveler?.full_name || traveler?.email || "guest"}
       </p>
       <p className="mt-1">
-        {traveler?.email || "Signed-in email unavailable"}
+        {traveler?.email || "Email unavailable"}
         {traveler?.phone ? ` | ${traveler.phone}` : ""}
       </p>
     </div>
@@ -42,16 +25,15 @@ function LoggedOutBookingState({ room }) {
         <div>
           <p className="eyebrow-label">Book this stay</p>
           <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-            Log in to create your booking
+            Sign in to reserve this stay
           </h2>
         </div>
         <span className="pill-muted">Traveler account required</span>
       </div>
 
       <div className="mt-4 rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-        This room is part of active public inventory, so bookings are now saved
-        directly to the authenticated traveler account instead of staying as an
-        inquiry-only request.
+        Sign in so your stay details, payment progress, and booking updates are
+        all kept together in your personal account.
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -73,7 +55,6 @@ function LoggedOutBookingState({ room }) {
 }
 
 function RealBookingForm({ room, traveler }) {
-  const [feedback, setFeedback] = useState(null);
   const [formState, setFormState] = useState({
     checkInDate: "",
     checkOutDate: "",
@@ -91,9 +72,9 @@ function RealBookingForm({ room, traveler }) {
 
   function handleSubmit(event) {
     event.preventDefault();
-    setFeedback(null);
 
     startTransition(async () => {
+      const toastId = toast.loading("Creating your booking...");
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: {
@@ -111,12 +92,11 @@ function RealBookingForm({ room, traveler }) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setFeedback({
-          type: "error",
-          message:
-            payload.message ||
+        toast.error(
+          payload.message ||
             "We could not create your booking right now. Please try again shortly.",
-        });
+          { id: toastId },
+        );
         return;
       }
 
@@ -126,12 +106,10 @@ function RealBookingForm({ room, traveler }) {
         guests: 2,
         notes: "",
       });
-      setFeedback({
-        type: "success",
-        message:
-          payload.message ||
-          "Your booking has been saved as a pending reservation.",
-      });
+      toast.success(
+        payload.message || "Your stay request has been received successfully.",
+        { id: toastId },
+      );
     });
   }
 
@@ -144,10 +122,10 @@ function RealBookingForm({ room, traveler }) {
         <div>
           <p className="eyebrow-label">Book this stay</p>
           <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-            Create a real booking in a few quick steps
+            Reserve your stay in a few calm steps
           </h2>
         </div>
-        <span className="pill-muted">Saved as pending</span>
+        <span className="pill-muted">Fast confirmation flow</span>
       </div>
 
       <TravelerIdentityCard traveler={traveler} />
@@ -195,9 +173,9 @@ function RealBookingForm({ room, traveler }) {
         </label>
 
         <div className="rounded-[24px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-          This room supports up to {room.guestCapacity || 0} guest
-          {room.guestCapacity === 1 ? "" : "s"} and uses the active hotel +
-          room visibility rules before a booking can be saved.
+          Designed for up to {room.guestCapacity || 0} guest
+          {room.guestCapacity === 1 ? "" : "s"}, with availability checked
+          before your stay request is placed.
         </div>
       </div>
 
@@ -219,16 +197,13 @@ function RealBookingForm({ room, traveler }) {
         disabled={isPending}
         className="button-accent mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Creating booking..." : "Create pending booking"}
+        {isPending ? "Reserving your stay..." : "Reserve your stay"}
       </button>
-
-      <FeedbackMessage feedback={feedback} />
     </form>
   );
 }
 
 function FallbackInquiryForm({ room }) {
-  const [feedback, setFeedback] = useState(null);
   const [formState, setFormState] = useState({
     name: "",
     email: "",
@@ -249,9 +224,9 @@ function FallbackInquiryForm({ room }) {
 
   function handleSubmit(event) {
     event.preventDefault();
-    setFeedback(null);
 
     startTransition(async () => {
+      const toastId = toast.loading("Sending your request...");
       const response = await fetch("/api/booking-inquiry", {
         method: "POST",
         headers: {
@@ -269,12 +244,11 @@ function FallbackInquiryForm({ room }) {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setFeedback({
-          type: "error",
-          message:
-            payload.message ||
+        toast.error(
+          payload.message ||
             "We could not send your request right now. Please try again shortly.",
-        });
+          { id: toastId },
+        );
         return;
       }
 
@@ -287,11 +261,10 @@ function FallbackInquiryForm({ room }) {
         guests: 2,
         message: "",
       });
-      setFeedback({
-        type: "success",
-        message:
-          "Your request has been sent. The hotel can now review your preferred dates and details.",
-      });
+      toast.success(
+        "Your request has been sent. The hotel can now review your preferred dates and details.",
+        { id: toastId },
+      );
     });
   }
 
@@ -304,16 +277,15 @@ function FallbackInquiryForm({ room }) {
         <div>
           <p className="eyebrow-label">Request this stay</p>
           <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-            Check availability in a few quick steps
+            Ask about availability in a few quick steps
           </h2>
         </div>
         <span className="pill-muted">Replies usually within a day</span>
       </div>
 
       <div className="mt-4 rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-        This stay is still running on safe fallback content, so inquiry mode
-        remains available here until real bookable public inventory fully takes
-        over.
+        Send your preferred dates and details, and the hotel can reply with the
+        best way to continue your stay planning.
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -422,8 +394,6 @@ function FallbackInquiryForm({ room }) {
       >
         {isPending ? "Sending request..." : "Send booking request"}
       </button>
-
-      <FeedbackMessage feedback={feedback} />
     </form>
   );
 }

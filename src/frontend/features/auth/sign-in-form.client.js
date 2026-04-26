@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 import { PasswordField } from "./password-field.client";
 
 const REMEMBERED_EMAIL_KEY = "quickstay.remembered-email";
@@ -69,9 +70,11 @@ export function SignInForm({ action, next = "/" }) {
         </Link>
       </div>
 
-      <button type="submit" className="button-primary w-full">
-        Login
-      </button>
+      <PendingSubmitButton
+        idleLabel="Login"
+        pendingLabel="Logging you in..."
+        className="button-primary w-full"
+      />
     </form>
   );
 }

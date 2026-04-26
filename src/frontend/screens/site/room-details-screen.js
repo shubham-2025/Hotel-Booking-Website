@@ -25,14 +25,14 @@ export async function RoomDetailsScreen({ params }) {
 
   const requestAssurances = room.isBookablePublic
     ? [
-        "Log in first so the booking is saved directly to your traveler account.",
-        "Choose valid stay dates and a guest count that fits the room capacity.",
-        "Your reservation is created as a pending booking foundation for later confirmation and payment steps.",
+        "Sign in so your stay details, payment updates, and itinerary stay together in one place.",
+        "Choose dates and a guest count that match the comfort of the room.",
+        "We will save your reservation request and guide you through the next step with clarity.",
       ]
     : [
-        "Share your preferred dates and guest count in one quick form.",
-        "Use the notes field for arrival timing, twin-bed requests, or special needs.",
-        "The hotel can review your request and continue the conversation by email.",
+        "Share your preferred dates and guest count in one easy form.",
+        "Use the notes field for arrival timing, bedding requests, or special needs.",
+        "The hotel can review your message and continue the conversation by email.",
       ];
 
   return (
@@ -40,44 +40,77 @@ export async function RoomDetailsScreen({ params }) {
       <div className="page-shell">
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-              {room.hotel.city}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <h1 className="font-display text-4xl text-[var(--color-ink)] sm:text-5xl">
-                {room.hotel.name}
-              </h1>
-              <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-strong)]">
-                {room.roomType}
-              </span>
-              <span className="pill-muted">4.8 guest rating</span>
+            <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,rgba(19,48,75,0.96),rgba(39,89,131,0.94),rgba(137,186,229,0.82))] p-6 text-white shadow-[var(--shadow-lift)] sm:p-7">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/68">
+                {room.hotel.city}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h1 className="font-display text-4xl text-white sm:text-5xl">
+                  {room.hotel.name}
+                </h1>
+                <span className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/82 backdrop-blur-sm">
+                  {room.roomType}
+                </span>
+                <span className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/82 backdrop-blur-sm">
+                  4.8 guest rating
+                </span>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 text-sm text-white/76">
+                <img
+                  src={siteAssets.locationIcon}
+                  alt=""
+                  className="h-4 w-4 opacity-70 brightness-0 invert"
+                />
+                <span>{room.hotel.address}</span>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                    Rate
+                  </p>
+                  <p className="mt-3 text-2xl font-semibold text-white">
+                    {formatCurrency(room.pricePerNight)}
+                  </p>
+                </div>
+                <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                    Capacity
+                  </p>
+                  <p className="mt-3 text-2xl font-semibold text-white">
+                    {room.guestCapacity} guest{room.guestCapacity === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                    Visibility
+                  </p>
+                  <p className="mt-3 text-2xl font-semibold text-white">
+                    {room.isBookablePublic ? "Book now" : "Inquiry"}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 text-sm text-[var(--color-muted)]">
-              <img
-                src={siteAssets.locationIcon}
-                alt=""
-                className="h-4 w-4 opacity-70"
-              />
-              <span>{room.hotel.address}</span>
-            </div>
+            <div className="mt-8 overflow-hidden rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/92 p-4 shadow-[var(--shadow-soft)]">
+              <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+                <img
+                  src={room.images[0]}
+                  alt={room.hotel.name}
+                  className="h-full min-h-72 w-full rounded-[30px] object-cover"
+                />
 
-            <div className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-              <img
-                src={room.images[0]}
-                alt={room.hotel.name}
-                className="h-full min-h-72 w-full rounded-[30px] object-cover"
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                {room.images.slice(1).map((image) => (
-                  <img
-                    key={image}
-                    src={image}
-                    alt={room.hotel.name}
-                    className="aspect-square w-full rounded-[24px] object-cover"
-                  />
-                ))}
+                <div className="grid grid-cols-2 gap-4">
+                  {room.images.slice(1).map((image) => (
+                    <img
+                      key={image}
+                      src={image}
+                      alt={room.hotel.name}
+                      className="aspect-square w-full rounded-[24px] object-cover"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -109,8 +142,8 @@ export async function RoomDetailsScreen({ params }) {
             <div className="mt-10">
               <SectionHeading
                 eyebrow="Stay details"
-                title="A room page that keeps the essentials easy to compare"
-                description="The gallery, pricing, amenities, and request panel now work together with cleaner spacing and a more trustworthy reading flow."
+                title="A room page designed to feel calm, clear, and reassuring"
+                description="The gallery, pricing, amenities, and reservation panel work together so guests can decide with confidence."
                 align="left"
               />
 
@@ -133,7 +166,7 @@ export async function RoomDetailsScreen({ params }) {
             </div>
           </div>
 
-          <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+          <div className="space-y-6 xl:sticky xl:top-28 xl:self-start">
             <BookingInquiryForm
               room={room}
               traveler={currentProfile}
@@ -146,8 +179,8 @@ export async function RoomDetailsScreen({ params }) {
               </p>
               <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
                 {room.isBookablePublic
-                  ? "Booking works best when the stay details are clear"
-                  : "Keep your request simple and specific"}
+                  ? "A beautiful stay starts with clear details"
+                  : "Share the details that matter most"}
               </h2>
               <div className="mt-5 space-y-3">
                 {requestAssurances.map((item) => (

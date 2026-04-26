@@ -31,8 +31,8 @@ export async function OwnerAddRoomScreen() {
           Create your hotel before adding rooms
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Room drafts should attach to a real hotel record. Set up the hotel
-          first, then come back here to create your first room.
+          Rooms are shaped around a property profile. Set up the hotel first,
+          then come back here to create your first room.
         </p>
 
         <div className="mt-8">

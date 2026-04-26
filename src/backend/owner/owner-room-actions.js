@@ -15,6 +15,19 @@ import {
 } from "@/src/backend/storage/owner-room-image-storage";
 import { ownerRoomSchema } from "@/src/backend/validation/owner-room.schema";
 
+function buildOwnerRoomRedirect(pathname, params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (typeof value === "string" && value.length > 0) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 function getFieldValue(formData, key) {
   return String(formData.get(key) || "").trim();
 }
@@ -94,7 +107,9 @@ export async function createOwnerRoomAction(_previousState, formData) {
 
   if (result.status === "created") {
     revalidateOwnerRoomPaths(result.room?._id || "");
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", { notice: "room_created" }),
+    );
   }
 
   if (result.status === "no_hotel") {
@@ -165,7 +180,9 @@ export async function updateOwnerRoomAction(_previousState, formData) {
 
   if (result.status === "updated") {
     revalidateOwnerRoomPaths(roomId);
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", { notice: "room_updated" }),
+    );
   }
 
   if (result.status === "no_hotel") {
@@ -173,7 +190,9 @@ export async function updateOwnerRoomAction(_previousState, formData) {
   }
 
   if (result.status === "not_found") {
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", { error: "room_not_found" }),
+    );
   }
 
   return {
@@ -191,7 +210,11 @@ export async function toggleOwnerRoomAvailabilityAction(formData) {
   const shouldBeActive = nextState === "publish";
 
   if (!roomId || (nextState !== "publish" && nextState !== "unpublish")) {
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", {
+        error: "room_action_invalid",
+      }),
+    );
   }
 
   let result;
@@ -205,17 +228,29 @@ export async function toggleOwnerRoomAvailabilityAction(formData) {
 
     console.error("toggleOwnerRoomAvailabilityAction failed", error);
 
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", {
+        error: "room_visibility_failed",
+      }),
+    );
   }
 
   if (result.status === "updated") {
     revalidateOwnerRoomPaths(roomId);
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerRoomRedirect("/owner/list-room", {
+        notice: shouldBeActive ? "room_published" : "room_unpublished",
+      }),
+    );
   }
 
   if (result.status === "no_hotel") {
     redirect("/owner/setup-hotel");
   }
 
-  redirect("/owner/list-room");
+  redirect(
+    buildOwnerRoomRedirect("/owner/list-room", {
+      error: "room_visibility_failed",
+    }),
+  );
 }

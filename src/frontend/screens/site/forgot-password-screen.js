@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { forgotPasswordAction } from "@/src/backend/auth/auth-actions";
+import { QueryStatusToast } from "@/src/frontend/components/feedback/query-status-toast.client";
 import { AuthPanel } from "@/src/frontend/features/auth/auth-panel";
 import { ForgotPasswordForm } from "@/src/frontend/features/auth/forgot-password-form.client";
 
@@ -14,7 +15,7 @@ const noticeMessages = {
     "If this email exists in QuickStay, a secure password reset link is on the way.",
 };
 
-function getStatus(errorCode, noticeCode) {
+function getStatus(errorCode) {
   if (errorCode && errorMessages[errorCode]) {
     return {
       tone: "error",
@@ -22,18 +23,11 @@ function getStatus(errorCode, noticeCode) {
     };
   }
 
-  if (noticeCode && noticeMessages[noticeCode]) {
-    return {
-      tone: "success",
-      message: noticeMessages[noticeCode],
-    };
-  }
-
   return null;
 }
 
 export function ForgotPasswordScreen({ errorCode = "", noticeCode = "" }) {
-  const status = getStatus(errorCode, noticeCode);
+  const status = getStatus(errorCode);
 
   return (
     <AuthPanel
@@ -45,6 +39,12 @@ export function ForgotPasswordScreen({ errorCode = "", noticeCode = "" }) {
       footerLinkLabel="Back to login"
       footerLinkHref="/login"
     >
+      <QueryStatusToast
+        noticeCode={noticeCode}
+        noticeMessages={noticeMessages}
+        showErrorToast={false}
+      />
+
       <ForgotPasswordForm action={forgotPasswordAction} />
 
       <div className="mt-5 rounded-[24px] border border-[var(--color-line)] bg-white/80 px-4 py-4 text-sm leading-7 text-[var(--color-muted)]">

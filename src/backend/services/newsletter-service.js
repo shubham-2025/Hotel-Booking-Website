@@ -1,13 +1,15 @@
 import { ZodError } from "zod";
 import { env } from "@/src/backend/config/env";
-import { getResendClient } from "@/src/backend/email/resend-client";
+import {
+  renderTransactionalEmail,
+  sendTransactionalEmail,
+} from "@/src/backend/email/transactional-email";
 import { saveNewsletterSubscriber } from "@/src/backend/repositories/newsletter-subscribers-repository";
 import { newsletterSchema } from "@/src/backend/validation/newsletter.schema";
 
 export async function handleNewsletterPost(request) {
   try {
     const payload = newsletterSchema.parse(await request.json());
-    const resend = getResendClient();
 
     const storedInDatabase = await saveNewsletterSubscriber({
       email: payload.email,
@@ -16,15 +18,31 @@ export async function handleNewsletterPost(request) {
 
     let emailQueued = false;
 
-    if (resend && env.notificationEmail) {
-      await resend.emails.send({
-        from: env.resendFromEmail,
+    if (env.notificationEmail) {
+      emailQueued = await sendTransactionalEmail({
         to: env.notificationEmail,
         subject: "New newsletter subscriber",
+        html: renderTransactionalEmail({
+          preheader: "A new traveler joined the newsletter.",
+          eyebrow: "Newsletter",
+          accentLabel: "New subscriber",
+          title: "A traveler joined your email list",
+          lead: "QuickStay captured a fresh newsletter signup from the website.",
+          summaryRows: [
+            {
+              label: "Subscriber email",
+              value: payload.email,
+            },
+            {
+              label: "Source",
+              value: "Website newsletter form",
+            },
+          ],
+          closingText:
+            "This message was triggered automatically from the live newsletter signup flow.",
+        }),
         text: `New subscriber: ${payload.email}`,
       });
-
-      emailQueued = true;
     }
 
     if (!storedInDatabase && !emailQueued) {
@@ -32,7 +50,7 @@ export async function handleNewsletterPost(request) {
         status: 503,
         body: {
           message:
-            "Newsletter route is ready, but Supabase/Resend environment variables still need to be configured.",
+            "Newsletter route is ready, but Supabase/email environment variables still need to be configured.",
         },
       };
     }

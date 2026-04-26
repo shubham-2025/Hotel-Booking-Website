@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import { createOwnerRoomAction } from "@/src/backend/owner/owner-room-actions";
 
 const amenityOptions = [
@@ -35,7 +36,7 @@ function SubmitButton() {
       disabled={pending}
       className="button-primary min-h-12 px-5 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? "Creating room..." : "Create room draft"}
+      {pending ? "Saving room..." : "Save room"}
     </button>
   );
 }
@@ -58,6 +59,20 @@ export function AddRoomPanel({ hotel }) {
     description: "",
   });
   const [selectedImageNames, setSelectedImageNames] = useState([]);
+  const lastErrorToastRef = useRef("");
+
+  useEffect(() => {
+    if (state.status !== "error" || !state.message) {
+      return;
+    }
+
+    if (lastErrorToastRef.current === state.message) {
+      return;
+    }
+
+    lastErrorToastRef.current = state.message;
+    toast.error(state.message);
+  }, [state.message, state.status]);
 
   function toggleAmenity(amenity) {
     setSelectedAmenities((current) =>
@@ -81,18 +96,18 @@ export function AddRoomPanel({ hotel }) {
           Add room
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Create a draft room for {hotel?.name}
+          Welcome a new room to {hotel?.name}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          This form now creates a real room record for your authenticated hotel
-          context. New rooms stay in draft mode until you publish them, and can
-          now carry real room photos from day one.
+          Add the essentials guests care about most: the room style, comfort,
+          photography, and nightly rate. You can perfect the presentation
+          before making it visible.
         </p>
       </div>
 
       <div className="rounded-[26px] bg-[#f7fbff] p-4 ring-1 ring-[#d7e5f7]">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-          Hotel scope
+          Property
         </p>
         <p className="mt-2 text-xl font-semibold text-[var(--color-ink)]">
           {hotel?.name}
@@ -273,8 +288,8 @@ export function AddRoomPanel({ hotel }) {
         />
         <p className="text-sm leading-7 text-[var(--color-muted)]">
           Upload up to 6 JPG, PNG, or WEBP files. If you skip this for now, the
-          room will safely continue using fallback imagery until photos are
-          added later.
+          room can still be saved and styled beautifully later when your final
+          photography is ready.
         </p>
         {selectedImageNames.length ? (
           <div className="flex flex-wrap gap-2">

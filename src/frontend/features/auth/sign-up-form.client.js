@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 import { PasswordField } from "./password-field.client";
 
 export function SignUpForm({ action, next = "/" }) {
@@ -75,9 +76,11 @@ export function SignUpForm({ action, next = "/" }) {
         After account creation, we will guide the user to the login flow. If email confirmation is enabled in Supabase, they will receive a secure verification email that returns them to QuickStay.
       </div>
 
-      <button type="submit" className="button-primary w-full">
-        Create account
-      </button>
+      <PendingSubmitButton
+        idleLabel="Create account"
+        pendingLabel="Creating account..."
+        className="button-primary w-full"
+      />
     </form>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import {
   createOwnerHotelAction,
   updateOwnerHotelAction,
@@ -43,11 +44,11 @@ function SubmitButton({ mode }) {
     >
       {pending
         ? isEditMode
-          ? "Saving hotel..."
-          : "Creating hotel..."
+          ? "Saving property..."
+          : "Saving property..."
         : isEditMode
-          ? "Save hotel changes"
-          : "Create hotel"}
+          ? "Save property changes"
+          : "Save property"}
     </button>
   );
 }
@@ -65,6 +66,20 @@ export function HotelSetupPanel({ profile, hotel = null, mode = "create" }) {
       : ["Free WiFi", "Breakfast included"],
   );
   const isEditMode = mode === "edit";
+  const lastErrorToastRef = useRef("");
+
+  useEffect(() => {
+    if (state.status !== "error" || !state.message) {
+      return;
+    }
+
+    if (lastErrorToastRef.current === state.message) {
+      return;
+    }
+
+    lastErrorToastRef.current = state.message;
+    toast.error(state.message);
+  }, [state.message, state.status]);
 
   function toggleAmenity(amenity) {
     setSelectedAmenities((current) =>
@@ -184,8 +199,8 @@ export function HotelSetupPanel({ profile, hotel = null, mode = "create" }) {
           />
           <p className="text-sm leading-7 text-[var(--color-muted)]">
             {isEditMode
-              ? "Update the live cover image URL whenever your property branding or main listing visual changes."
-              : "Add a real hotel cover image URL now so the owner area feels more complete. You can refine this later if needed."}
+              ? "Refresh the cover whenever your property styling or signature photo changes."
+              : "Add a beautiful cover image now so the property already feels inviting before guests even open a room."}
           </p>
           <FieldError errors={state.fieldErrors?.heroImageUrl} />
         </div>
@@ -202,8 +217,8 @@ export function HotelSetupPanel({ profile, hotel = null, mode = "create" }) {
             </p>
             <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
               {isEditMode
-                ? "This preview helps you confirm that the public-facing hotel cover still matches your current property branding."
-                : "This cover helps your owner dashboard and property setup feel more like a real listing instead of a placeholder record."}
+                ? "Use this preview to make sure the image still reflects the mood and quality of the stay."
+                : "This preview helps you shape the first impression guests will carry into the rest of the listing."}
             </p>
           </div>
         </div>
@@ -243,8 +258,8 @@ export function HotelSetupPanel({ profile, hotel = null, mode = "create" }) {
 
       <div className="rounded-[24px] bg-[#f7fbff] p-4 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[#d7e5f7]">
         {isEditMode
-          ? "These updates change the real hotel record linked to your authenticated owner/admin account. Active public rooms will read this hotel context once the hotel itself is published."
-          : "This creates the first hotel record for your authenticated owner/admin account with real contact details, a usable cover image, and property amenities. After this, room creation and pricing management continue in the owner inventory flow."}
+          ? "These updates refresh the property profile guests rely on when deciding whether this stay feels right for them."
+          : "This becomes the foundation for every room, price, and booking moment your guests will see next."}
       </div>
 
       {state.status === "error" ? (

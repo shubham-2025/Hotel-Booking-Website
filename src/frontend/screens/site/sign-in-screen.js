@@ -2,6 +2,7 @@ import {
   continueWithGoogleAction,
   signInAction,
 } from "@/src/backend/auth/auth-actions";
+import { QueryStatusToast } from "@/src/frontend/components/feedback/query-status-toast.client";
 import { AuthPanel } from "@/src/frontend/features/auth/auth-panel";
 import { SignInForm } from "@/src/frontend/features/auth/sign-in-form.client";
 
@@ -16,14 +17,14 @@ const errorMessages = {
 
 const noticeMessages = {
   account_created:
-    "Account created successfully. Use the password you chose to log in.",
+    "Your account is ready. Sign in with the password you just created.",
   check_email:
-    "Check your email to confirm your account, then return here to log in.",
+    "Check your inbox to confirm your account, then come back to sign in.",
   password_reset:
-    "Your password was updated successfully. You can sign in now.",
+    "Your password has been updated. You can sign in now.",
 };
 
-function getStatus(errorCode, noticeCode) {
+function getStatus(errorCode) {
   if (errorCode && errorMessages[errorCode]) {
     return {
       tone: "error",
@@ -31,18 +32,11 @@ function getStatus(errorCode, noticeCode) {
     };
   }
 
-  if (noticeCode && noticeMessages[noticeCode]) {
-    return {
-      tone: "success",
-      message: noticeMessages[noticeCode],
-    };
-  }
-
   return null;
 }
 
 export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
-  const status = getStatus(errorCode, noticeCode);
+  const status = getStatus(errorCode);
   const ownerAccessIntent = next === "/host";
 
   return (
@@ -59,12 +53,17 @@ export function SignInScreen({ next = "/", errorCode = "", noticeCode = "" }) {
           : "/create-account"
       }
     >
+      <QueryStatusToast
+        noticeCode={noticeCode}
+        noticeMessages={noticeMessages}
+        showErrorToast={false}
+      />
+
       {ownerAccessIntent ? (
         <div className="mb-6 rounded-[24px] border border-[var(--color-line)] bg-white/80 px-4 py-4 text-sm leading-7 text-[var(--color-muted)]">
-          You are continuing through the owner access path. If this account is
-          already `owner` or `admin`, we will take you into the owner area
-          after login. If it is a new traveler account, we will show the start
-          hosting step clearly after login.
+          You are signing in for hosting access. If this account already has
+          hosting enabled, we will take you straight to your private dashboard.
+          If not, we will guide you into the next hosting step after sign in.
         </div>
       ) : null}
 

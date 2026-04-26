@@ -76,5 +76,9 @@ export async function updateOwnerBookingStatusAction(formData) {
     redirect(buildOwnerBookingsRedirect({ error: "invalid_transition" }));
   }
 
+  if (result.status === "payment_required") {
+    redirect(buildOwnerBookingsRedirect({ error: "payment_required" }));
+  }
+
   redirect(buildOwnerBookingsRedirect({ error: "update_failed" }));
 }

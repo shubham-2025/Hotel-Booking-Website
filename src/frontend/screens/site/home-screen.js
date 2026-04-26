@@ -84,15 +84,15 @@ function getInventoryStaySignals(snapshot) {
   return [
     {
       value: String(snapshot.totalPublicRooms),
-      label: "active public rooms",
+      label: "rooms open now",
     },
     {
       value: String(snapshot.activeHotelCount),
-      label: "live hotel listings",
+      label: "hotels welcoming guests",
     },
     {
       value: String(snapshot.activeCityCount),
-      label: "active city choices",
+      label: "cities to explore",
     },
   ];
 }
@@ -113,10 +113,10 @@ export async function HomeScreen() {
   const featuredHeading =
     inventorySnapshot.source === "real"
       ? {
-          eyebrow: "Live stays",
-          title: "Active rooms that are now coming from real QuickStay inventory",
+          eyebrow: "Fresh stays",
+          title: "Rooms ready to welcome travelers right now",
           description:
-            "These featured stays are now pulled from active hotel and room inventory, so the home page reflects what travelers can actually browse right now.",
+            "These featured stays reflect the rooms guests can currently explore, making the first impression feel timely and trustworthy.",
         }
       : {
           eyebrow: "Featured stays",
@@ -140,7 +140,7 @@ export async function HomeScreen() {
 
           {inventorySnapshot.source === "real" ? (
             <p className="mt-5 inline-flex rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
-              Live active inventory
+              Ready to book now
             </p>
           ) : null}
 

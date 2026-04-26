@@ -1,5 +1,7 @@
 "use client";
 
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
+
 export function ForgotPasswordForm({ action }) {
   return (
     <form action={action} className="space-y-4">
@@ -15,9 +17,11 @@ export function ForgotPasswordForm({ action }) {
         />
       </label>
 
-      <button type="submit" className="button-primary w-full">
-        Send reset link
-      </button>
+      <PendingSubmitButton
+        idleLabel="Send reset link"
+        pendingLabel="Sending reset link..."
+        className="button-primary w-full"
+      />
     </form>
   );
 }

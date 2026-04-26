@@ -10,6 +10,19 @@ import {
 } from "@/src/backend/repositories/owner-repository";
 import { ownerHotelSchema } from "@/src/backend/validation/owner-hotel.schema";
 
+function buildOwnerHotelRedirect(pathname, params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (typeof value === "string" && value.length > 0) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 function buildHotelSlugBase(name, city) {
   const slug = `${name}-${city}`
     .trim()
@@ -94,11 +107,15 @@ export async function createOwnerHotelAction(_previousState, formData) {
 
   if (result.status === "created") {
     revalidateOwnerHotelPaths();
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerHotelRedirect("/owner/list-room", { notice: "hotel_created" }),
+    );
   }
 
   if (result.status === "already_exists") {
-    redirect("/owner/list-room");
+    redirect(
+      buildOwnerHotelRedirect("/owner/list-room", { notice: "hotel_exists" }),
+    );
   }
 
   return {
@@ -151,11 +168,17 @@ export async function updateOwnerHotelAction(_previousState, formData) {
 
   if (result.status === "updated") {
     revalidateOwnerHotelPaths();
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", {
+        notice: "hotel_updated",
+      }),
+    );
   }
 
   if (result.status === "no_hotel" || result.status === "not_found") {
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", { error: "hotel_not_found" }),
+    );
   }
 
   return {
@@ -173,7 +196,11 @@ export async function toggleOwnerHotelAvailabilityAction(formData) {
   const shouldBeActive = nextState === "publish";
 
   if (!hotelId || (nextState !== "publish" && nextState !== "unpublish")) {
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", {
+        error: "hotel_action_invalid",
+      }),
+    );
   }
 
   let result;
@@ -186,17 +213,31 @@ export async function toggleOwnerHotelAvailabilityAction(formData) {
     }
 
     console.error("toggleOwnerHotelAvailabilityAction failed", error);
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", {
+        error: "hotel_visibility_failed",
+      }),
+    );
   }
 
   if (result.status === "updated") {
     revalidateOwnerHotelPaths();
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", {
+        notice: shouldBeActive ? "hotel_published" : "hotel_unpublished",
+      }),
+    );
   }
 
   if (result.status === "no_hotel" || result.status === "not_found") {
-    redirect("/owner/setup-hotel");
+    redirect(
+      buildOwnerHotelRedirect("/owner/setup-hotel", { error: "hotel_not_found" }),
+    );
   }
 
-  redirect("/owner/setup-hotel");
+  redirect(
+    buildOwnerHotelRedirect("/owner/setup-hotel", {
+      error: "hotel_visibility_failed",
+    }),
+  );
 }

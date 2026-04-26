@@ -36,7 +36,7 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
     <AuthPanel
       eyebrow="Create account"
       title="Create your QuickStay account"
-      description="Set up your traveler account with contact details, a secure password, and a smoother return path into future booking flows."
+      description="Set up your account with contact details and a secure password so every future stay feels smooth from the very first step."
       status={status}
       footerPrompt="Already have an account?"
       footerLinkLabel="Login"
@@ -46,9 +46,9 @@ export function SignUpScreen({ next = "/", errorCode = "" }) {
     >
       {ownerAccessIntent ? (
         <div className="mb-6 rounded-[24px] border border-[var(--color-line)] bg-white/80 px-4 py-4 text-sm leading-7 text-[var(--color-muted)]">
-          This creates the same common QuickStay account used for both traveler
-          and owner access. New accounts start as traveler accounts first, and
-          after login we will guide the start-hosting step from there.
+          This creates the same QuickStay account used for both guest and host
+          access. Once you sign in, we will guide you into the hosting flow
+          from there.
         </div>
       ) : null}
 

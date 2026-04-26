@@ -23,11 +23,12 @@ const footerGroups = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative mt-20 overflow-hidden border-t border-white/8 bg-[linear-gradient(180deg,#12243b,#0f1d30)] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(155,205,245,0.18),transparent_30%)]" />
+    <footer className="relative mt-24 overflow-hidden border-t border-white/8 bg-[linear-gradient(180deg,#102238,#0c1a2b)] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(155,205,245,0.22),transparent_28%)]" />
+      <div className="pointer-events-none absolute left-[-8rem] top-12 h-56 w-56 rounded-full bg-[rgba(155,205,245,0.08)] blur-3xl" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(155,205,245,0.54),transparent)]" />
 
-      <div className="page-shell relative grid gap-10 py-14 lg:grid-cols-[1.45fr_0.9fr_0.9fr]">
+      <div className="page-shell relative grid gap-10 py-16 lg:grid-cols-[1.35fr_0.82fr_0.82fr]">
         <div>
           <img
             src={siteAssets.logo}
@@ -36,8 +37,8 @@ export function SiteFooter() {
           />
           <p className="mt-5 max-w-xl text-sm leading-8 text-white/70">
             QuickStay helps travelers discover polished city stays, compare room
-            details quickly, and send booking requests with confidence on any
-            screen size.
+            details quickly, and keep bookings, payments, and account actions in
+            one calmer flow on any screen size.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             {["City breaks", "Weekend stays", "Longer escapes"].map((item) => (
@@ -72,9 +73,9 @@ export function SiteFooter() {
       </div>
 
       <div className="relative border-t border-white/10 bg-white/4">
-        <div className="page-shell flex flex-col gap-3 py-4 text-sm text-white/56 sm:flex-row sm:items-center sm:justify-between">
-          <p>QuickStay demo experience for polished booking discovery.</p>
-          <p>Responsive, readable, and ready for a stronger next release.</p>
+        <div className="page-shell flex flex-col gap-3 py-5 text-sm text-white/56 sm:flex-row sm:items-center sm:justify-between">
+          <p>QuickStay booking experience for discovery, account, and payment flow.</p>
+          <p>Responsive, clearer, and tuned for a more premium browsing feel.</p>
         </div>
       </div>
     </footer>

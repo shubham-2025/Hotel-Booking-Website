@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
-  const [feedback, setFeedback] = useState(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event) {
     event.preventDefault();
-    setFeedback(null);
 
     startTransition(async () => {
+      const toastId = toast.loading("Joining the QuickStay list...");
       const response = await fetch("/api/newsletter", {
         method: "POST",
         headers: {
@@ -21,17 +21,16 @@ export function NewsletterForm() {
       });
 
       if (!response.ok) {
-        setFeedback({
-          type: "error",
-          message: "We could not add you right now. Please try again shortly.",
-        });
+        toast.error(
+          "We could not add you right now. Please try again shortly.",
+          { id: toastId },
+        );
         return;
       }
 
       setEmail("");
-      setFeedback({
-        type: "success",
-        message: "You're on the list. Fresh stays and offers are on the way.",
+      toast.success("You're on the list. Fresh stays and offers are on the way.", {
+        id: toastId,
       });
     });
   }
@@ -69,15 +68,6 @@ export function NewsletterForm() {
           {isPending ? "Saving..." : "Join the list"}
         </button>
       </div>
-      {feedback ? (
-        <p
-          className={`text-sm ${
-            feedback.type === "success" ? "text-emerald-200" : "text-rose-200"
-          }`}
-        >
-          {feedback.message}
-        </p>
-      ) : null}
     </form>
   );
 }

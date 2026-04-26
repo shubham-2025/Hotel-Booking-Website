@@ -61,9 +61,9 @@ export function SiteHeader({ authState }) {
   const shouldShowOwnerEntryCta = isManagementUser || isAuthPage;
   const ownerCtaLabel = authState?.isAuthenticated
     ? isManagementUser
-      ? "Owner Dashboard"
+      ? "Host Dashboard"
       : "Become a Host"
-    : "Owner Access";
+    : "Hosting";
   const ownerCtaHref = isManagementUser ? "/owner" : "/host";
 
   useEffect(() => {

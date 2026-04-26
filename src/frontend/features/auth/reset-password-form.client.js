@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 import { PasswordField } from "./password-field.client";
 
 export function ResetPasswordForm({ action }) {
@@ -20,9 +21,11 @@ export function ResetPasswordForm({ action }) {
         placeholder="Re-enter your new password"
       />
 
-      <button type="submit" className="button-primary w-full">
-        Update password
-      </button>
+      <PendingSubmitButton
+        idleLabel="Update password"
+        pendingLabel="Updating password..."
+        className="button-primary w-full"
+      />
     </form>
   );
 }

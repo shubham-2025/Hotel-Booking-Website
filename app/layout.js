@@ -1,4 +1,5 @@
 import { Montserrat } from "next/font/google";
+import { AppToaster } from "@/src/frontend/components/feedback/app-toaster.client";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -18,6 +19,9 @@ export const metadata = {
   },
   description:
     "Discover thoughtfully selected stays with clear pricing, polished room details, and faster booking inquiries.",
+};
+
+export const viewport = {
   themeColor: "#12243b",
 };
 
@@ -26,6 +30,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${montserrat.variable} h-full scroll-smooth`}>
       <body className="min-h-full bg-[var(--color-surface)] text-slate-950 antialiased">
         {children}
+        <AppToaster />
       </body>
     </html>
   );

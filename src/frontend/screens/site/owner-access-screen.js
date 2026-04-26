@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { startHostingAction } from "@/src/backend/owner/owner-access-actions";
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 
 const errorMessages = {
   profile_unavailable:
     "We could not load your account profile for owner setup. Please sign in again and retry.",
   owner_activation_unavailable:
-    "Owner activation is temporarily unavailable in this environment. Please try again shortly.",
+    "Hosting is temporarily unavailable right now. Please try again shortly.",
   owner_activation_failed:
-    "We could not activate owner access right now. Please try again shortly.",
+    "We could not activate hosting right now. Please try again shortly.",
 };
 
 function StepList({ items }) {
@@ -35,17 +36,19 @@ export function OwnerAccessScreen({
       <section className="section-space">
         <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="surface-card rounded-[32px] p-6 sm:p-8">
-            <p className="eyebrow-label">Owner access</p>
+            <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
-              Host with the same QuickStay account
+              Host beautifully with the same QuickStay account
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
-              Travelers and hosts use the same login system here. Sign in first, then continue into the owner flow from one clear entry point.
+              One account is all you need. Sign in first, then continue into
+              your private hosting space from one calm, professional entry
+              point.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/login?next=/host" className="button-primary min-h-11 px-5">
-                Login for owner access
+                Sign in for hosting
               </Link>
               <Link href="/create-account?next=/host" className="button-secondary min-h-11 px-5">
                 Create account
@@ -62,8 +65,8 @@ export function OwnerAccessScreen({
               <StepList
                 items={[
                   "Log in or create your account.",
-                  "Use the same account whenever owner access is enabled.",
-                  "Continue to hotel setup and room management from the owner area.",
+                  "Use the same account whenever hosting is enabled.",
+                  "Continue to your property profile and room collection.",
                 ]}
               />
             </div>
@@ -80,12 +83,12 @@ export function OwnerAccessScreen({
           <div className="surface-card rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Become a Host</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
-              Your account is signed in as a traveler{fullName ? `, ${fullName}` : ""}
+              Your account is ready for hosting{fullName ? `, ${fullName}` : ""}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
-              Owner access uses the same QuickStay account, but every new
-              account starts as a traveler first. This account still needs an
-              `owner` or `admin` role before hotel setup can begin.
+              Hosting uses the same QuickStay account, but every new account
+              starts with guest access first. Turn on hosting here and we will
+              guide you into your property setup next.
             </p>
 
             {errorMessage ? (
@@ -96,22 +99,24 @@ export function OwnerAccessScreen({
 
             <div className="mt-6 flex flex-wrap gap-3">
               <form action={startHostingAction}>
-                <button type="submit" className="button-primary min-h-11 px-5">
-                  Start hosting
-                </button>
+                <PendingSubmitButton
+                  idleLabel="Start hosting"
+                  pendingLabel="Opening hosting..."
+                  className="button-primary min-h-11 px-5"
+                />
               </form>
               <Link href="/" className="button-secondary min-h-11 px-5">
                 Back to home
               </Link>
               <Link href="/host" className="button-secondary min-h-11 px-5">
-                Refresh owner access
+                Refresh hosting
               </Link>
               {supportEmail ? (
                 <a
-                  href={`mailto:${supportEmail}?subject=QuickStay owner access request`}
+                  href={`mailto:${supportEmail}?subject=QuickStay hosting request`}
                   className="button-secondary min-h-11 px-5"
                 >
-                  Request owner access
+                  Contact support
                 </a>
               ) : null}
             </div>
@@ -120,21 +125,21 @@ export function OwnerAccessScreen({
           <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Next step</p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-              Guest to owner in this batch
+              Turn this account into a hosting space
             </h2>
             <div className="mt-6">
               <StepList
                 items={[
                   "Keep using the same QuickStay login.",
-                  "Activate owner access for this account from this page.",
-                  "Continue directly to hotel setup and then add rooms.",
+                  "Activate hosting for this account from this page.",
+                  "Continue directly to your property profile and rooms.",
                 ]}
               />
             </div>
             <p className="mt-5 text-sm leading-7 text-[var(--color-muted)]">
-              Once owner access is activated, this same account can still browse
-              home, rooms, and bookings like any normal user, while also gaining
-              access to hotel setup and owner inventory pages.
+              Once hosting is activated, the same account can still browse and
+              book stays while also gaining access to property details, rooms,
+              and guest bookings.
             </p>
           </div>
         </div>
@@ -147,20 +152,22 @@ export function OwnerAccessScreen({
       <section className="section-space">
         <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="surface-card rounded-[32px] p-6 sm:p-8">
-            <p className="eyebrow-label">Owner access</p>
+            <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
-              Owner access is ready
+              Your hosting space is ready
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
-              Your management role is active. The next step is creating the first hotel record that your future rooms and owner dashboard will attach to.
+              Your hosting access is active. The next step is creating the
+              property profile that your rooms, bookings, and dashboard will
+              grow around.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
-                Continue to hotel setup
+                Continue to property details
               </Link>
               <Link href="/owner" className="button-secondary min-h-11 px-5">
-                Open owner area
+                Open dashboard
               </Link>
             </div>
           </div>
@@ -173,9 +180,9 @@ export function OwnerAccessScreen({
             <div className="mt-6">
               <StepList
                 items={[
-                  "Create the hotel record.",
-                  "Add rooms under that hotel.",
-                  "Publish active rooms when they are ready for public discovery.",
+                  "Create the property profile.",
+                  "Add rooms that fit the style of the stay.",
+                  "Open selected rooms to guests when they feel ready.",
                 ]}
               />
             </div>
@@ -190,9 +197,9 @@ export function OwnerAccessScreen({
       <section className="section-space">
         <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="surface-card rounded-[32px] p-6 sm:p-8">
-            <p className="eyebrow-label">Owner access</p>
+            <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
-              Owner access is active, but data is unavailable
+              Hosting is active, but details are unavailable
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
               {reason || "We could not load your owner data right now. Please try again shortly."}
@@ -200,10 +207,10 @@ export function OwnerAccessScreen({
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/owner" className="button-primary min-h-11 px-5">
-                Open owner dashboard
+                Open dashboard
               </Link>
               <Link href="/host" className="button-secondary min-h-11 px-5">
-                Refresh owner access
+                Refresh hosting
               </Link>
             </div>
           </div>
@@ -217,8 +224,8 @@ export function OwnerAccessScreen({
               <StepList
                 items={[
                   "Use the same account for owner and traveler access.",
-                  "Retry owner setup or dashboard once backend data is available.",
-                  "Continue to hotel setup when the owner data layer is healthy again.",
+                  "Retry the dashboard once your property data is available.",
+                  "Continue to property details when everything is ready again.",
                 ]}
               />
             </div>
@@ -232,30 +239,30 @@ export function OwnerAccessScreen({
     <section className="section-space">
       <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="surface-card rounded-[32px] p-6 sm:p-8">
-          <p className="eyebrow-label">Owner access</p>
+          <p className="eyebrow-label">Hosting</p>
           <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
-            Owner dashboard is ready
+            Your hosting dashboard is ready
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
             {hotelName
-              ? `You already have owner access with ${hotelName} linked to this account.`
-              : "You already have owner access with a hotel linked to this account."}
+              ? `${hotelName} is already connected to this account and ready to manage.`
+              : "A property is already connected to this account and ready to manage."}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/owner" className="button-primary min-h-11 px-5">
-              Open owner dashboard
+              Open dashboard
             </Link>
             <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
-              Manage inventory
+              View rooms
             </Link>
           </div>
         </div>
 
         <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
-          <p className="eyebrow-label">Current owner flow</p>
+          <p className="eyebrow-label">Current hosting flow</p>
           <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-            Room lifecycle now continues from here
+            Everything continues from here
           </h2>
           <div className="mt-6">
             <StepList

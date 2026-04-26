@@ -1,7 +1,29 @@
 import Link from "next/link";
 import { toggleOwnerRoomAvailabilityAction } from "@/src/backend/owner/owner-room-actions";
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 import { formatCurrency } from "@/src/frontend/lib/format";
 import { getOwnerRoomsData } from "@/src/backend/repositories/owner-repository";
+import { QueryStatusToast } from "@/src/frontend/components/feedback/query-status-toast.client";
+
+const noticeMessages = {
+  hotel_created:
+    "Your property was saved beautifully. You can start adding rooms right away.",
+  hotel_exists:
+    "Your property is already in place. You can continue with your room collection.",
+  room_created: "Your room was saved successfully.",
+  room_updated: "Your room details were refreshed successfully.",
+  room_published:
+    "This room is now ready to appear to guests when the property is visible.",
+  room_unpublished: "This room has been returned to private viewing.",
+};
+
+const errorMessages = {
+  room_not_found:
+    "We could not find that room in your hosting space. Refresh and try again.",
+  room_action_invalid: "We could not understand that room action.",
+  room_visibility_failed:
+    "We could not update room visibility right now. Please try again shortly.",
+};
 
 function formatHotelStatus(status) {
   if (!status) {
@@ -11,18 +33,31 @@ function formatHotelStatus(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-export async function OwnerListRoomScreen() {
+export async function OwnerListRoomScreen({ searchParams }) {
   const ownerRoomsData = await getOwnerRoomsData();
+  const params = (await searchParams) || {};
   const primaryHotel = ownerRoomsData.primaryHotel;
+  const noticeCode =
+    typeof params.notice === "string" ? params.notice : "";
+  const errorCode = typeof params.error === "string" ? params.error : "";
+  const feedbackToast = (
+    <QueryStatusToast
+      noticeCode={noticeCode}
+      errorCode={errorCode}
+      noticeMessages={noticeMessages}
+      errorMessages={errorMessages}
+    />
+  );
 
   if (ownerRoomsData.status === "unavailable") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Inventory
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Owner room inventory is unavailable
+          Your room collection is temporarily unavailable
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
           {ownerRoomsData.reason}
@@ -34,23 +69,26 @@ export async function OwnerListRoomScreen() {
   if (ownerRoomsData.status === "no_hotel") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Inventory
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          No hotel linked to this owner account
+          Add a property before styling your rooms
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Room inventory now depends on real owner-scoped data. Since this account does not have a hotel yet, there are no rooms to load.
+          Rooms are designed around a property profile. Once your hotel is in
+          place, this page will become your full room collection.
         </p>
 
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-            Setup first
-          </p>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            The next foundational step is creating the hotel record for this owner/admin. Once that exists, this page will show only rooms that belong to that hotel scope.
-          </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+            First step
+            </p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
+            Create the property profile first. After that, every room you add
+            here will feel connected, polished, and ready to present.
+            </p>
           <div className="mt-5">
             <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
               Set up your hotel
@@ -63,16 +101,18 @@ export async function OwnerListRoomScreen() {
 
   return (
     <div>
+      {feedbackToast}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
             Inventory
           </p>
           <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-            Listing management
+            Your room collection
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This page now reads only rooms linked to the authenticated owner account. Draft and active status are now part of the real owner lifecycle here.
+            Shape the rooms guests will browse, compare, and remember. This is
+            your quiet workspace for styling availability, pricing, and imagery.
           </p>
         </div>
 
@@ -88,7 +128,7 @@ export async function OwnerListRoomScreen() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-              Hotel scope
+              Property
             </p>
             <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
               {primaryHotel?.name}
@@ -116,10 +156,11 @@ export async function OwnerListRoomScreen() {
             No rooms yet
           </p>
           <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-            Your hotel is linked, but inventory is still empty
+            Your property is ready for its first room
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This owner page is now using real account scope correctly, and you can add the first room for this hotel directly from the owner area.
+            Start with the room that best represents the stay you want guests
+            to discover first.
           </p>
           <div className="mt-5">
             <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
@@ -162,10 +203,10 @@ export async function OwnerListRoomScreen() {
                   ) : null}
                   <p className="mt-3 text-sm text-[var(--color-muted)]">
                     {room.uploadedImages?.length
-                      ? `${room.uploadedImages.length} real photo${
+                      ? `${room.uploadedImages.length} uploaded photo${
                           room.uploadedImages.length === 1 ? "" : "s"
                         } uploaded`
-                      : "Fallback preview active until room photos are uploaded"}
+                      : "Preview image in place until your room photos are added"}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {room.amenities.map((amenity) => (
@@ -203,8 +244,8 @@ export async function OwnerListRoomScreen() {
                     </span>
                     <p className="mt-2 text-sm leading-6 text-[var(--color-muted)]">
                       {room.isAvailable
-                        ? "Visible on public room pages."
-                        : "Hidden from public room pages until published."}
+                        ? "Visible to guests while the property is also open."
+                        : "Kept private until you are ready to share it."}
                     </p>
                   </div>
 
@@ -213,7 +254,7 @@ export async function OwnerListRoomScreen() {
                       href={`/owner/rooms/${room._id}/edit`}
                       className="button-secondary min-h-11 w-full"
                     >
-                      Edit room
+                      Refine room
                     </Link>
 
                     <form action={toggleOwnerRoomAvailabilityAction}>
@@ -223,16 +264,17 @@ export async function OwnerListRoomScreen() {
                         name="nextState"
                         value={room.isAvailable ? "unpublish" : "publish"}
                       />
-                      <button
-                        type="submit"
+                      <PendingSubmitButton
+                        idleLabel={room.isAvailable ? "Unpublish room" : "Publish room"}
+                        pendingLabel={
+                          room.isAvailable ? "Unpublishing room..." : "Publishing room..."
+                        }
                         className={`min-h-11 w-full rounded-full px-4 text-sm font-semibold transition ${
                           room.isAvailable
                             ? "border border-[var(--color-line)] bg-white text-[var(--color-ink)] hover:bg-[var(--color-card-soft)]"
                             : "button-primary"
                         }`}
-                      >
-                        {room.isAvailable ? "Unpublish room" : "Publish room"}
-                      </button>
+                      />
                     </form>
                   </div>
                 </div>

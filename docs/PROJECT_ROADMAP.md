@@ -33,13 +33,17 @@
 - Booking creation now blocks overlapping date conflicts against existing pending or confirmed bookings for the same room.
 - `/my-bookings` now reads real authenticated traveler bookings instead of demo fallback booking cards.
 - Owners can now review real bookings for their own rooms and move bookings through the first safe status transitions.
-- Booking lifecycle emails now send for booking creation and owner-driven booking status updates when Resend is configured.
+- Booking lifecycle emails now send through configurable transactional email infrastructure, with Brevo SMTP ready for booking, status, and payment notifications.
+- Confirmed unpaid bookings can now open a real Stripe Checkout payment flow from `/my-bookings`.
+- Successful Stripe checkout now updates booking payment status to `paid` for traveler and owner views.
+- Global toast notifications now surface key auth, booking, payment, and owner workflow feedback instead of relying only on inline banners.
+- Shared site and owner shells now use a more polished layout system, with upgraded auth, bookings, rooms, and detail-page presentation.
 
 ## 2. Target Stack
 
 - Frontend: Next.js App Router
 - Database: PostgreSQL in Supabase
-- Email: Resend
+- Email: Brevo SMTP
 - Deployment: Vercel
 - Recommended auth direction: Supabase Auth with role-based owner access
 
@@ -54,7 +58,7 @@
 - Rebuilt the owner shell so it collapses well on smaller screens.
 - Added backend foundation files for:
   - Supabase server/browser/admin clients
-  - Resend client
+  - transactional email helpers
   - newsletter API route
   - booking inquiry API route
 - Added an initial Supabase SQL schema migration.
@@ -97,7 +101,8 @@
 - Traveler booking history now loads from real authenticated bookings on `/my-bookings`.
 - Owner-side booking visibility is now live for owner-scoped rooms.
 - Basic owner booking status updates now support `pending -> confirmed`, `pending -> cancelled`, and `confirmed -> completed`.
-- Add payment state transitions.
+- Stripe Checkout payment status updates now move bookings from `unpaid` to `paid`.
+- Owners can now complete a confirmed stay only after payment is received.
 
 ### Phase 5: Owner workflows
 
@@ -116,18 +121,17 @@
 - Send new booking notification email to owner.
 - Send booking confirmation, cancellation, and completion emails to traveler.
 - Add booking inquiry receipt to guest.
-- Add payment-related emails.
+- Booking payment confirmation emails now send to traveler and owner when payment is captured successfully.
 
 ### Phase 7: Deployment and ops
 
 - Add Vercel environment variables.
 - Connect Vercel to Supabase project.
-- Add production domain for Resend sender verification.
+- Add production sender/domain verification in Brevo for transactional email deliverability.
 - Run smoke tests after deploy.
 
 ## 5. High-Impact Features You Can Add Later
 
-- Payments with Stripe
 - Saved favorites / wishlist
 - Guest reviews and ratings
 - City/category landing pages for SEO

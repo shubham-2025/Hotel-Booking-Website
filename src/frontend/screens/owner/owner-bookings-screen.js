@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { updateOwnerBookingStatusAction } from "@/src/backend/owner/owner-booking-actions";
 import { getOwnerBookingsData } from "@/src/backend/repositories/owner-repository";
+import { QueryStatusToast } from "@/src/frontend/components/feedback/query-status-toast.client";
+import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
 import { formatCurrency, formatDate } from "@/src/frontend/lib/format";
 import { siteAssets } from "@/src/frontend/assets";
 
@@ -14,9 +16,11 @@ const noticeMessages = {
 const errorMessages = {
   invalid_action: "We could not understand that booking update action.",
   booking_not_found:
-    "That booking is no longer available in your current owner scope.",
+    "We could not find that stay inside your hosting space.",
   invalid_transition:
     "That booking status change is not allowed from the current state.",
+  payment_required:
+    "This stay can only be completed after the traveler payment is received.",
   update_failed:
     "We could not update the booking right now. Please try again shortly.",
 };
@@ -76,7 +80,7 @@ function getOwnerBookingActions(booking) {
     ];
   }
 
-  if (booking.status === "confirmed") {
+  if (booking.status === "confirmed" && booking.paymentStatus === "paid") {
     return [
       {
         label: "Mark completed",
@@ -89,24 +93,28 @@ function getOwnerBookingActions(booking) {
   return [];
 }
 
-function FeedbackBanner({ noticeCode = "", errorCode = "" }) {
-  if (errorCode && errorMessages[errorCode]) {
-    return (
-      <p className="mt-6 rounded-[24px] bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-100">
-        {errorMessages[errorCode]}
-      </p>
-    );
+function getOwnerBookingActionMessage(booking) {
+  if (booking.status === "confirmed" && booking.paymentStatus !== "paid") {
+    return "Traveler payment is still pending. This stay can be completed after payment is received.";
   }
 
-  if (noticeCode && noticeMessages[noticeCode]) {
-    return (
-      <p className="mt-6 rounded-[24px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700 ring-1 ring-emerald-100">
-        {noticeMessages[noticeCode]}
-      </p>
-    );
+  return "No more updates are needed for this stay right now.";
+}
+
+function getPendingActionLabel(nextStatus) {
+  if (nextStatus === "confirmed") {
+    return "Confirming booking...";
   }
 
-  return null;
+  if (nextStatus === "cancelled") {
+    return "Cancelling booking...";
+  }
+
+  if (nextStatus === "completed") {
+    return "Marking completed...";
+  }
+
+  return "Saving update...";
 }
 
 export async function OwnerBookingsScreen({ searchParams }) {
@@ -121,15 +129,27 @@ export async function OwnerBookingsScreen({ searchParams }) {
   const confirmedCount = ownerBookingsData.bookings.filter(
     (booking) => booking.status === "confirmed",
   ).length;
+  const paidCount = ownerBookingsData.bookings.filter(
+    (booking) => booking.paymentStatus === "paid",
+  ).length;
+  const feedbackToast = (
+    <QueryStatusToast
+      noticeCode={noticeCode}
+      errorCode={errorCode}
+      noticeMessages={noticeMessages}
+      errorMessages={errorMessages}
+    />
+  );
 
   if (ownerBookingsData.status === "unavailable") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Bookings
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Owner bookings are temporarily unavailable
+          Your guest bookings are temporarily unavailable
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
           {ownerBookingsData.reason}
@@ -141,6 +161,7 @@ export async function OwnerBookingsScreen({ searchParams }) {
   if (ownerBookingsData.status === "no_hotel") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Bookings
         </p>
@@ -148,9 +169,8 @@ export async function OwnerBookingsScreen({ searchParams }) {
           Set up your hotel before managing bookings
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Booking operations depend on the owner account being linked to a real
-          hotel first. Once your hotel and rooms exist, bookings tied to that
-          inventory will appear here.
+          Guest bookings begin once your property profile and room collection
+          are ready. After that, each stay will appear here automatically.
         </p>
         <div className="mt-8">
           <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
@@ -164,6 +184,7 @@ export async function OwnerBookingsScreen({ searchParams }) {
   if (ownerBookingsData.status === "no_rooms") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Bookings
         </p>
@@ -171,9 +192,8 @@ export async function OwnerBookingsScreen({ searchParams }) {
           Add rooms before booking operations begin
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Owners can only review bookings for real rooms attached to their hotel
-          scope. Once inventory exists, bookings for those rooms will appear
-          here automatically.
+          Guest stays will begin appearing here as soon as your property has
+          rooms available to welcome bookings.
         </p>
         <div className="mt-8">
           <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
@@ -187,18 +207,17 @@ export async function OwnerBookingsScreen({ searchParams }) {
   if (ownerBookingsData.status === "empty") {
     return (
       <div>
+        {feedbackToast}
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
           Bookings
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Owner booking management is ready
+          Your booking desk is ready
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Your rooms are linked correctly, but no traveler bookings have been
-          created for this owner scope yet.
+          Your rooms are beautifully connected, and guest stays will start
+          appearing here as soon as bookings begin.
         </p>
-
-        <FeedbackBanner noticeCode={noticeCode} errorCode={errorCode} />
 
         <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6 shadow-[var(--shadow-soft)]">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
@@ -207,7 +226,7 @@ export async function OwnerBookingsScreen({ searchParams }) {
           <div className="mt-4 space-y-3 text-sm leading-7 text-[var(--color-muted)]">
             <p>1. Bookings tied only to rooms owned by this account.</p>
             <p>2. Booking status and payment status for each reservation.</p>
-            <p>3. Basic owner actions to confirm, cancel, or complete stays.</p>
+            <p>3. Simple actions to confirm, cancel, or complete each stay.</p>
           </div>
         </div>
       </div>
@@ -216,18 +235,18 @@ export async function OwnerBookingsScreen({ searchParams }) {
 
   return (
     <div>
+      {feedbackToast}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
             Bookings
           </p>
           <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-            Booking operations for your owned rooms
+            Care for every guest stay with clarity
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-            This page shows only bookings that belong to the current owner
-            account&apos;s rooms, and it now supports the first safe status
-            transitions for real operational flow.
+            Review each stay, keep payment visibility clear, and guide guests
+            from request to arrival with a calm operational view.
           </p>
         </div>
 
@@ -241,7 +260,49 @@ export async function OwnerBookingsScreen({ searchParams }) {
         </div>
       </div>
 
-      <FeedbackBanner noticeCode={noticeCode} errorCode={errorCode} />
+      <div className="mt-8 overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,rgba(19,48,75,0.98),rgba(39,89,131,0.95),rgba(137,186,229,0.82))] p-6 text-white shadow-[var(--shadow-lift)] sm:p-7">
+        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/68">
+              Booking desk
+            </p>
+            <h2 className="mt-3 font-display text-4xl text-white">
+              Review new stays, confirm demand, and keep operations moving
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-8 text-white/78">
+              This owner view now gives you a tighter operational snapshot with
+              live statuses, payment awareness, and safer action controls.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                Total
+              </p>
+              <p className="mt-3 font-display text-3xl text-white">
+                {ownerBookingsData.bookings.length}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                Pending / confirmed
+              </p>
+              <p className="mt-3 font-display text-3xl text-white">
+                {pendingCount}/{confirmedCount}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
+                Paid stays
+              </p>
+              <p className="mt-3 font-display text-3xl text-white">
+                {paidCount}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         <div className="rounded-[28px] bg-[#f7fbff] p-5 ring-1 ring-[#d7e5f7]">
@@ -279,7 +340,7 @@ export async function OwnerBookingsScreen({ searchParams }) {
           return (
             <article
               key={booking._id}
-              className="rounded-[28px] border border-[var(--color-line)] bg-[#fbfcfe] p-4 shadow-[var(--shadow-soft)]"
+              className="overflow-hidden rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,253,0.98))] p-4 shadow-[var(--shadow-soft)]"
             >
               <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
                 <img
@@ -289,17 +350,24 @@ export async function OwnerBookingsScreen({ searchParams }) {
                 />
 
                 <div>
-                  <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-                    {booking.hotel?.city || booking.hotel?.address}
-                  </p>
-                  <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-                    {booking.room?.name || booking.room?.roomType || "Booked room"}
-                  </h2>
-                  <p className="mt-2 text-sm font-medium text-[var(--color-ink)]">
-                    {booking.hotel?.name || "Hotel unavailable"}
-                  </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+                        {booking.hotel?.city || booking.hotel?.address}
+                      </p>
+                      <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+                        {booking.room?.name || booking.room?.roomType || "Booked room"}
+                      </h2>
+                      <p className="mt-2 text-sm font-medium text-[var(--color-ink)]">
+                        {booking.hotel?.name || "Hotel unavailable"}
+                      </p>
+                    </div>
+
+                    <span className="pill-muted">Private hosting view</span>
+                  </div>
+
                   {booking.room?.roomType !== booking.room?.name ? (
-                    <p className="mt-2 text-sm text-[var(--color-muted)]">
+                    <p className="mt-3 text-sm text-[var(--color-muted)]">
                       {booking.room?.roomType}
                     </p>
                   ) : null}
@@ -323,7 +391,7 @@ export async function OwnerBookingsScreen({ searchParams }) {
                   ) : null}
                 </div>
 
-                <div className="flex flex-col gap-4 rounded-[24px] bg-white p-4 ring-1 ring-[var(--color-line)]">
+                <div className="flex flex-col gap-4 rounded-[28px] bg-white/96 p-4 ring-1 ring-[var(--color-line)] shadow-[0_14px_34px_rgba(18,36,59,0.06)]">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
                       Stay window
@@ -386,15 +454,16 @@ export async function OwnerBookingsScreen({ searchParams }) {
                             name="nextStatus"
                             value={action.nextStatus}
                           />
-                          <button type="submit" className={action.className}>
-                            {action.label}
-                          </button>
+                          <PendingSubmitButton
+                            idleLabel={action.label}
+                            pendingLabel={getPendingActionLabel(action.nextStatus)}
+                            className={action.className}
+                          />
                         </form>
                       ))
                     ) : (
                       <div className="rounded-[22px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-                        No further status updates are available for this booking
-                        in this batch.
+                        {getOwnerBookingActionMessage(booking)}
                       </div>
                     )}
                   </div>

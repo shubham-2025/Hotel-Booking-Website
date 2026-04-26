@@ -1133,6 +1133,15 @@ export async function updateOwnerBookingStatus(bookingId, nextStatus) {
 
   const { profile, booking, bookingRow, supabase } = bookingData;
 
+  if (nextStatus === "completed" && bookingRow.payment_status !== "paid") {
+    return {
+      status: "payment_required",
+      profile,
+      booking,
+      reason: "Confirmed bookings can be completed only after payment is received.",
+    };
+  }
+
   if (!canOwnerUpdateBookingStatus(bookingRow.status, nextStatus)) {
     return {
       status: "invalid_transition",

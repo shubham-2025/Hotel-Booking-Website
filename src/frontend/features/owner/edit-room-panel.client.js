@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
 import { updateOwnerRoomAction } from "@/src/backend/owner/owner-room-actions";
 
 const amenityOptions = [
@@ -36,7 +37,7 @@ function SubmitButton() {
       disabled={pending}
       className="button-primary min-h-12 px-5 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {pending ? "Saving changes..." : "Save room changes"}
+      {pending ? "Saving room..." : "Save room changes"}
     </button>
   );
 }
@@ -52,6 +53,7 @@ export function EditRoomPanel({ room, hotel }) {
     room.uploadedImages || [],
   );
   const [selectedImageNames, setSelectedImageNames] = useState([]);
+  const lastErrorToastRef = useRef("");
   const [roomSummary, setRoomSummary] = useState({
     pricePerNight: String(room.pricePerNight || ""),
     guestCapacity: String(room.guestCapacity || "1"),
@@ -60,6 +62,19 @@ export function EditRoomPanel({ room, hotel }) {
     description: room.description || "",
     name: room.name || "",
   });
+
+  useEffect(() => {
+    if (state.status !== "error" || !state.message) {
+      return;
+    }
+
+    if (lastErrorToastRef.current === state.message) {
+      return;
+    }
+
+    lastErrorToastRef.current = state.message;
+    toast.error(state.message);
+  }, [state.message, state.status]);
 
   function toggleAmenity(amenity) {
     setSelectedAmenities((current) =>
@@ -102,13 +117,14 @@ export function EditRoomPanel({ room, hotel }) {
           Update {room.name || room.roomType}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Edit the room details attached to your authenticated hotel. Publishing stays separate so you can control when public inventory changes.
+          Refresh the details, imagery, and comfort notes so the room feels
+          polished, welcoming, and ready for the right guest.
         </p>
       </div>
 
       <div className="rounded-[26px] bg-[#f7fbff] p-4 ring-1 ring-[#d7e5f7]">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-          Hotel scope
+          Property
         </p>
         <p className="mt-2 text-xl font-semibold text-[var(--color-ink)]">
           {hotel?.name}
@@ -285,8 +301,8 @@ export function EditRoomPanel({ room, hotel }) {
         ) : (
           <div className="rounded-3xl bg-[#f8fafc] p-4 text-sm leading-7 text-[var(--color-muted)]">
             {room.usesFallbackImages
-              ? "No real uploaded room photos are attached yet. Public pages will continue using fallback visuals until you add images here."
-              : "No uploaded room photos are currently being retained in this edit session."}
+              ? "No dedicated room photography has been added yet. You can still keep refining the room now and add imagery when it is ready."
+              : "No uploaded photos are currently being kept in this editing session."}
           </div>
         )}
 
@@ -323,8 +339,8 @@ export function EditRoomPanel({ room, hotel }) {
       </div>
 
       <div className="rounded-3xl bg-[#f8fafc] p-4 text-sm leading-7 text-[var(--color-muted)]">
-        Publish and unpublish controls stay on the inventory page. This editor
-        now updates room details and room photos together.
+        Visibility is managed from the room collection page. This editor keeps
+        the details and imagery beautifully in sync.
       </div>
 
       {state.status === "error" ? (

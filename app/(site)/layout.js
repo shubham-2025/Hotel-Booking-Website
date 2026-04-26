@@ -37,7 +37,12 @@ export default async function SiteLayout({ children }) {
   return (
     <>
       <SiteHeader authState={authState} />
-      <main>{children}</main>
+      <main className="relative overflow-hidden pb-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(155,205,245,0.18),transparent_62%)]" />
+        <div className="pointer-events-none absolute left-[-12rem] top-56 h-[22rem] w-[22rem] rounded-full bg-[rgba(137,186,229,0.16)] blur-3xl" />
+        <div className="pointer-events-none absolute right-[-10rem] top-80 h-[24rem] w-[24rem] rounded-full bg-[rgba(36,91,156,0.08)] blur-3xl" />
+        <div className="relative">{children}</div>
+      </main>
       <SiteFooter />
     </>
   );

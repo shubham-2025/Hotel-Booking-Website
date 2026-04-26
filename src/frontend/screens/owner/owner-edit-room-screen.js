@@ -31,7 +31,8 @@ export async function OwnerEditRoomScreen({ roomId }) {
           Create your hotel before managing rooms
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          Room management is only available after a real hotel is linked to your owner account.
+          Room management opens once a property profile is linked to your
+          hosting space.
         </p>
         <div className="mt-8">
           <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
@@ -49,10 +50,11 @@ export async function OwnerEditRoomScreen({ roomId }) {
           Edit room
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Room not found in your owner scope
+          We could not find that room
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          This room either does not exist anymore or does not belong to the currently authenticated owner/admin account.
+          This room may no longer exist, or it may belong to a different
+          property space.
         </p>
         <div className="mt-8">
           <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">

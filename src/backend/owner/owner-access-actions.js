@@ -19,6 +19,19 @@ function buildHostRedirect(params = {}) {
   return query ? `/host?${query}` : "/host";
 }
 
+function buildOwnerSetupRedirect(params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (typeof value === "string" && value.length > 0) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `/owner/setup-hotel?${query}` : "/owner/setup-hotel";
+}
+
 export async function startHostingAction() {
   const user = await getCurrentUser();
 
@@ -60,5 +73,5 @@ export async function startHostingAction() {
     redirect(buildHostRedirect({ error: "owner_activation_failed" }));
   }
 
-  redirect("/owner/setup-hotel");
+  redirect(buildOwnerSetupRedirect({ notice: "owner_access_ready" }));
 }
