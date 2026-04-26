@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/src/frontend/lib/format";
 import { getDashboardData } from "@/lib/data";
+import { OwnerPageHeader } from "@/src/frontend/components/owner/owner-page-header";
+import { OwnerPropertyPreviewCard } from "@/src/frontend/components/owner/owner-property-preview-card";
+import { OwnerStatGrid } from "@/src/frontend/components/owner/owner-stat-grid";
 
 function formatHotelStatus(status) {
   if (!status) {
@@ -8,6 +11,260 @@ function formatHotelStatus(status) {
   }
 
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function formatStatusLabel(value) {
+  return String(value || "unknown")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getBookingStatusClasses(status) {
+  if (status === "confirmed") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (status === "pending") {
+    return "bg-amber-100 text-amber-700";
+  }
+
+  if (status === "cancelled") {
+    return "bg-rose-100 text-rose-700";
+  }
+
+  if (status === "completed") {
+    return "bg-sky-100 text-sky-700";
+  }
+
+  return "bg-slate-200 text-slate-700";
+}
+
+function getPaymentStatusClasses(paymentStatus) {
+  if (paymentStatus === "paid") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (paymentStatus === "refunded") {
+    return "bg-slate-200 text-slate-700";
+  }
+
+  return "bg-amber-100 text-amber-700";
+}
+
+function getDashboardDescription(dashboardData) {
+  if (dashboardData.status === "no_rooms") {
+    return "Your property profile is ready. The next step is building a room collection that guests can browse, compare, and book with confidence.";
+  }
+
+  return "Use this workspace to monitor room visibility, review guest activity, and keep the property presentation aligned with daily operations.";
+}
+
+function DashboardWorkspacePanel({ dashboardData, primaryHotel }) {
+  const rateValues = [
+    {
+      label: "Starting rate",
+      value: dashboardData.metrics.lowestNightlyRate
+        ? formatCurrency(dashboardData.metrics.lowestNightlyRate)
+        : "Not set",
+    },
+    {
+      label: "Average rate",
+      value: dashboardData.metrics.averageNightlyRate
+        ? formatCurrency(dashboardData.metrics.averageNightlyRate)
+        : "Not set",
+    },
+    {
+      label: "Highest rate",
+      value: dashboardData.metrics.highestNightlyRate
+        ? formatCurrency(dashboardData.metrics.highestNightlyRate)
+        : "Not set",
+    },
+  ];
+  const amenityPreview = primaryHotel?.amenities?.slice(0, 5) || [];
+  const visibilityNote =
+    primaryHotel?.status === "active"
+      ? "This property is open to discovery. Keep the story and room collection current so every guest arrives with the right expectations."
+      : "This property is still private. Refine the details here first, then open it when the experience feels ready to present.";
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_320px]">
+      <OwnerPropertyPreviewCard
+        imageUrl={
+          primaryHotel?.heroImageUrl ||
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
+        }
+        imageAlt={primaryHotel?.name}
+        meta={
+          <>
+            <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
+              {formatHotelStatus(primaryHotel?.status)}
+            </span>
+            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+              {dashboardData.metrics.totalHotels} hotel
+              {dashboardData.metrics.totalHotels === 1 ? "" : "s"}
+            </span>
+            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+              {dashboardData.metrics.activeRooms} active room
+              {dashboardData.metrics.activeRooms === 1 ? "" : "s"}
+            </span>
+          </>
+        }
+        name={primaryHotel?.name}
+        location={`${primaryHotel?.city} | ${primaryHotel?.address}`}
+        description={
+          primaryHotel?.description ||
+          "Complete the property story with clear imagery, a calm description, and room details that help guests trust the stay quickly."
+        }
+        amenities={amenityPreview}
+        note={visibilityNote}
+      />
+
+      <aside className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+          Workspace focus
+        </p>
+        <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
+          Keep the essentials in view
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[var(--color-line)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+              Property visibility
+            </p>
+            <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+              {primaryHotel?.status === "active"
+                ? "Travelers can discover this property when rooms are also active."
+                : "The property is still private. Rooms remain hidden until the hotel is open."}
+            </p>
+          </div>
+
+          <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[var(--color-line)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+              Rate snapshot
+            </p>
+            <div className="mt-3 space-y-2 text-sm leading-7 text-[var(--color-muted)]">
+              {rateValues.map((item) => (
+                <div key={item.label} className="flex items-center justify-between gap-4">
+                  <span>{item.label}</span>
+                  <span className="font-semibold text-[var(--color-ink)]">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[var(--color-line)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+              Operational note
+            </p>
+            <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+              Keep the room collection, pricing, and booking activity aligned so
+              guests always see a polished and current stay.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function RecentBookingsSection({ dashboardData }) {
+  if (dashboardData.status === "no_rooms") {
+    return (
+      <section className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/96 p-5 shadow-[var(--shadow-soft)] sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+          Next step
+        </p>
+        <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
+          Add the first room to start operations
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
+          Once your first room is added, this dashboard becomes a faster control
+          point for availability, pricing, and incoming guest stays.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
+            Add first room
+          </Link>
+          <Link href="/owner/setup-hotel" className="button-secondary min-h-11 px-5">
+            Refine property
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/96 p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Guest activity
+          </p>
+          <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+            Latest stays
+          </h2>
+        </div>
+
+        <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
+          Open bookings
+        </Link>
+      </div>
+
+      {dashboardData.recentBookings.length ? (
+        <div className="mt-6 overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-[rgba(250,252,254,0.96)]">
+          {dashboardData.recentBookings.slice(0, 6).map((booking, index) => (
+            <div
+              key={booking._id}
+              className={`grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center ${
+                index === 0 ? "" : "border-t border-[var(--color-line)]"
+              }`}
+            >
+              <div className="min-w-0">
+                <p className="text-lg font-semibold text-[var(--color-ink)]">
+                  {booking.guest.label}
+                </p>
+                <p className="mt-1 text-sm text-[var(--color-muted)]">
+                  {booking.room?.roomType} at {booking.hotel?.name}
+                </p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-strong)]">
+                  {formatDate(booking.checkInDate)} to {formatDate(booking.checkOutDate)}
+                </p>
+              </div>
+
+              <div className="text-sm font-semibold text-[var(--color-ink)]">
+                {formatCurrency(booking.totalPrice)}
+              </div>
+
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                <span
+                  className={`rounded-full px-3 py-2 text-xs font-semibold ${getBookingStatusClasses(
+                    booking.status,
+                  )}`}
+                >
+                  {formatStatusLabel(booking.status)}
+                </span>
+                <span
+                  className={`rounded-full px-3 py-2 text-xs font-semibold ${getPaymentStatusClasses(
+                    booking.paymentStatus,
+                  )}`}
+                >
+                  {formatStatusLabel(booking.paymentStatus)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-[24px] bg-[var(--color-card-soft)] px-4 py-4 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+          Your rooms are live in the workspace. Guest stays will appear here as
+          soon as bookings begin.
+        </div>
+      )}
+    </section>
+  );
 }
 
 export async function OwnerDashboardScreen() {
@@ -19,346 +276,146 @@ export async function OwnerDashboardScreen() {
 
   if (dashboardData.status === "unavailable") {
     return (
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-          Dashboard
-        </p>
-        <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Your hosting overview is temporarily unavailable
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          {dashboardData.reason}
-        </p>
+      <div className="space-y-8">
+        <OwnerPageHeader
+          eyebrow="Dashboard"
+          title="Your hosting overview is temporarily unavailable"
+          description={dashboardData.reason}
+        />
 
-        <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6">
-          <p className="text-sm text-[var(--color-muted)]">
-            As soon as your property data is available again, this space will
-            return to showing your rooms, bookings, pricing, and performance.
+        <section className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/96 p-6 shadow-[var(--shadow-soft)]">
+          <p className="text-sm leading-8 text-[var(--color-muted)]">
+            As soon as your property data becomes available again, this page
+            will return to room, rate, and booking visibility.
           </p>
-        </div>
+        </section>
       </div>
     );
   }
 
   if (dashboardData.status === "no_hotel") {
     return (
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-          Dashboard
-        </p>
-        <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Welcome, {ownerName}
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
-          Your hosting space is ready, but it still needs its first property.
-          Add the hotel details now so rooms, rates, and guest bookings have a
-          beautiful place to live.
-        </p>
+      <div className="space-y-8">
+        <OwnerPageHeader
+          eyebrow="Dashboard"
+          title={`Welcome, ${ownerName}`}
+          description="Your hosting space is active, and the first step is creating the property profile that rooms, rates, and guest stays will grow around."
+          actions={
+            <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
+              Set up property
+            </Link>
+          }
+        />
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-6 shadow-[var(--shadow-soft)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/96 p-6 shadow-[var(--shadow-soft)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
               First step
             </p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
-              Your hotel story starts here
+              Build the property foundation first
             </h2>
-            <p className="mt-3 text-sm leading-8 text-[var(--color-muted)]">
-              Once your property profile is in place, you can shape the rooms,
-              styling, pricing, and guest journey around it.
+            <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
+              Once the property profile is in place, the owner workspace becomes
+              clearer and more useful for room inventory, pricing, and bookings.
             </p>
-            <div className="mt-5">
+            <div className="mt-6">
               <Link href="/owner/setup-hotel" className="button-primary min-h-11 px-5">
-                Set up your hotel
+                Create property profile
               </Link>
             </div>
-          </div>
+          </section>
 
-          <div className="rounded-[30px] border border-[var(--color-line)] bg-white p-6 shadow-[var(--shadow-soft)]">
+          <aside className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-6 shadow-[var(--shadow-soft)]">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
               What comes next
             </p>
             <div className="mt-4 space-y-3 text-sm leading-8 text-[var(--color-muted)]">
-              <p>1. Introduce the hotel with a name, address, imagery, and tone.</p>
-              <p>2. Add the comforts and details that help guests feel at ease.</p>
-              <p>3. Build a beautiful room collection around that property profile.</p>
+              <p>1. Add the property name, location, story, and guest-facing details.</p>
+              <p>2. Create rooms and decide which ones are ready for travelers.</p>
+              <p>3. Use this dashboard later for bookings, visibility, and pricing checks.</p>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     );
   }
 
   const primaryHotel = dashboardData.primaryHotel;
+  const hasRooms = dashboardData.rooms.length > 0;
+  const dashboardActions = hasRooms ? (
+    <>
+      <Link href="/owner/list-room" className="button-primary min-h-11 px-5">
+        Room collection
+      </Link>
+      <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
+        Guest bookings
+      </Link>
+      <Link href="/owner/setup-hotel" className="button-secondary min-h-11 px-5">
+        Property details
+      </Link>
+    </>
+  ) : (
+    <>
+      <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
+        Add first room
+      </Link>
+      <Link href="/owner/setup-hotel" className="button-secondary min-h-11 px-5">
+        Property details
+      </Link>
+    </>
+  );
+
+  const stats = [
+    {
+      label: "Total rooms",
+      value: dashboardData.metrics.totalRooms,
+      tone: "accent",
+    },
+    {
+      label: "Open to guests",
+      value: dashboardData.metrics.activeRooms,
+      tone: "success",
+    },
+    {
+      label: "Guest stays",
+      value: dashboardData.metrics.totalBookings,
+      tone: "neutral",
+    },
+    {
+      label: "Revenue",
+      value: formatCurrency(dashboardData.metrics.totalRevenue),
+      tone: "warm",
+    },
+  ];
 
   return (
-    <div>
-      <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,rgba(19,48,75,0.98),rgba(39,89,131,0.95),rgba(137,186,229,0.82))] p-6 text-white shadow-[var(--shadow-lift)] sm:p-7">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/68">
-              Dashboard
-            </p>
-            <h1 className="mt-3 font-display text-4xl text-white">
-              {primaryHotel?.name || "Your hosting overview"}
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-8 text-white/78">
-              {dashboardData.status === "no_rooms"
-                ? "Your property is beautifully set up and ready for its first room."
-                : "A calm overview of performance, pricing, and upcoming guest activity for your property."}
-            </p>
-          </div>
+    <div className="space-y-8">
+      <OwnerPageHeader
+        eyebrow="Dashboard"
+        title={primaryHotel?.name || "Hosting overview"}
+        description={getDashboardDescription(dashboardData)}
+        meta={
+          <>
+            <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
+              {formatHotelStatus(primaryHotel?.status)}
+            </span>
+            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+              {primaryHotel?.city}
+            </span>
+          </>
+        }
+        actions={dashboardActions}
+      />
 
-          <div className="flex flex-wrap gap-3">
-            <Link href="/owner/setup-hotel" className="button-secondary min-h-11 px-5">
-              Refine property
-            </Link>
-            {dashboardData.rooms.length ? (
-              <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
-                Guest bookings
-              </Link>
-            ) : null}
-            {dashboardData.rooms.length ? (
-              <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
-                Room collection
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <OwnerStatGrid items={stats} />
 
-      <div className="mt-8 rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,#f7fbff,#ffffff)] p-5 shadow-[var(--shadow-soft)]">
-        <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start">
-          <div className="overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-white shadow-[0_18px_40px_rgba(18,36,59,0.08)]">
-            <img
-              src={
-                primaryHotel?.heroImageUrl ||
-                "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
-              }
-              alt={primaryHotel?.name}
-              className="aspect-[4/3] w-full object-cover"
-            />
-          </div>
+      <DashboardWorkspacePanel
+        dashboardData={dashboardData}
+        primaryHotel={primaryHotel}
+      />
 
-          <div className="min-w-0">
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
-                Signature property
-              </span>
-              <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-                {formatHotelStatus(primaryHotel?.status)}
-              </span>
-              <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-                {dashboardData.metrics.totalHotels} hotel
-                {dashboardData.metrics.totalHotels === 1 ? "" : "s"}
-              </span>
-            </div>
-
-            <div className="mt-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-                Property spotlight
-              </p>
-              <h2 className="mt-2 break-words font-display text-3xl text-[var(--color-ink)]">
-                {primaryHotel?.name}
-              </h2>
-              <p className="mt-2 break-words text-sm leading-7 text-[var(--color-muted)]">
-                {primaryHotel?.city} | {primaryHotel?.address}
-              </p>
-            </div>
-
-            {primaryHotel?.description ? (
-              <p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
-                {primaryHotel.description}
-              </p>
-            ) : null}
-
-            {primaryHotel?.amenities?.length ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {primaryHotel.amenities.map((amenity) => (
-                  <span
-                    key={amenity}
-                    className="rounded-full bg-white px-3 py-2 text-xs text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
-                  >
-                    {amenity}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[28px] bg-[#f7fbff] p-5 ring-1 ring-[#d7e5f7]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-            Total rooms
-          </p>
-          <p className="mt-3 text-4xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.totalRooms}
-          </p>
-        </div>
-
-        <div className="rounded-[28px] bg-[#eef8f0] p-5 ring-1 ring-[#d4ead8]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
-            Open to guests
-          </p>
-          <p className="mt-3 text-4xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.activeRooms}
-          </p>
-        </div>
-
-        <div className="rounded-[28px] bg-[#f7f5ff] p-5 ring-1 ring-[#e1daf9]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Guest stays
-          </p>
-          <p className="mt-3 text-4xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.totalBookings}
-          </p>
-        </div>
-
-        <div className="rounded-[28px] bg-[#fff7ef] p-5 ring-1 ring-[#f3dcc5]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Revenue
-          </p>
-          <p className="mt-3 text-4xl font-semibold text-[var(--color-ink)]">
-            {formatCurrency(dashboardData.metrics.totalRevenue)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Starting rate
-          </p>
-          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.lowestNightlyRate
-              ? formatCurrency(dashboardData.metrics.lowestNightlyRate)
-              : "Not set"}
-          </p>
-        </div>
-
-        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Average nightly rate
-          </p>
-          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.averageNightlyRate
-              ? formatCurrency(dashboardData.metrics.averageNightlyRate)
-              : "Not set"}
-          </p>
-        </div>
-
-        <div className="rounded-[28px] border border-[var(--color-line)] bg-white p-5 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Highest nightly rate
-          </p>
-          <p className="mt-3 text-3xl font-semibold text-[var(--color-ink)]">
-            {dashboardData.metrics.highestNightlyRate
-              ? formatCurrency(dashboardData.metrics.highestNightlyRate)
-              : "Not set"}
-          </p>
-        </div>
-      </div>
-
-      {dashboardData.status === "no_rooms" ? (
-        <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-white p-6 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-            Room collection
-          </p>
-          <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-            Your property is ready for its first room
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
-            Add your first room to start building the stay experience guests
-            will browse, compare, and remember.
-          </p>
-          <div className="mt-5">
-            <Link href="/owner/add-room" className="button-primary min-h-11 px-5">
-              Add your first room
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-8 rounded-[30px] border border-[var(--color-line)] bg-[#fbfcfe] p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-                Guest activity
-              </p>
-              <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
-                Latest stays
-              </h2>
-            </div>
-            <Link href="/owner/bookings" className="button-secondary min-h-11 px-5">
-              Open bookings
-            </Link>
-          </div>
-
-          {dashboardData.recentBookings.length ? (
-            <div className="mt-6 grid gap-4">
-              {dashboardData.recentBookings.slice(0, 6).map((booking) => (
-                <div
-                  key={booking._id}
-                  className="rounded-[24px] bg-white p-4 ring-1 ring-[var(--color-line)]"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-lg font-semibold text-[var(--color-ink)]">
-                        {booking.guest.label}
-                      </p>
-                      <p className="text-sm text-[var(--color-muted)]">
-                        {booking.room?.roomType} at {booking.hotel?.name}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--color-accent-strong)]">
-                        {formatDate(booking.checkInDate)} to {formatDate(booking.checkOutDate)}
-                      </p>
-                    </div>
-                    <div className="text-sm font-medium text-[var(--color-muted)]">
-                      {formatCurrency(booking.totalPrice)}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span
-                        className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                          booking.status === "confirmed"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : booking.status === "completed"
-                              ? "bg-sky-100 text-sky-700"
-                              : booking.status === "cancelled"
-                                ? "bg-rose-100 text-rose-700"
-                                : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                          booking.paymentStatus === "paid"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : booking.paymentStatus === "refunded"
-                              ? "bg-slate-200 text-slate-700"
-                              : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {booking.paymentStatus === "paid"
-                          ? "Paid"
-                          : booking.paymentStatus === "refunded"
-                            ? "Refunded"
-                            : "Unpaid"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-[24px] bg-white p-5 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-              Your rooms are ready, and the first guest stays will appear here
-              as soon as bookings begin.
-            </div>
-          )}
-        </div>
-      )}
+      <RecentBookingsSection dashboardData={dashboardData} />
     </div>
   );
 }

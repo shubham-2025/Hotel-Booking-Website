@@ -34,8 +34,8 @@ export function OwnerAccessScreen({
   if (state === "logged_out") {
     return (
       <section className="section-space">
-        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="surface-card rounded-[32px] p-6 sm:p-8">
+        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+          <div className="surface-card h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
               Host beautifully with the same QuickStay account
@@ -56,7 +56,7 @@ export function OwnerAccessScreen({
             </div>
           </div>
 
-          <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
+          <div className="surface-card-soft h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">What happens next</p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
               One path for both traveler and host access
@@ -79,8 +79,8 @@ export function OwnerAccessScreen({
   if (state === "guest") {
     return (
       <section className="section-space">
-        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="surface-card rounded-[32px] p-6 sm:p-8">
+        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+          <div className="surface-card h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Become a Host</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
               Your account is ready for hosting{fullName ? `, ${fullName}` : ""}
@@ -122,7 +122,7 @@ export function OwnerAccessScreen({
             </div>
           </div>
 
-          <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
+          <div className="surface-card-soft h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Next step</p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
               Turn this account into a hosting space
@@ -150,8 +150,8 @@ export function OwnerAccessScreen({
   if (state === "owner_no_hotel") {
     return (
       <section className="section-space">
-        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="surface-card rounded-[32px] p-6 sm:p-8">
+        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+          <div className="surface-card h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
               Your hosting space is ready
@@ -172,7 +172,7 @@ export function OwnerAccessScreen({
             </div>
           </div>
 
-          <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
+          <div className="surface-card-soft h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">What comes next</p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
               Finish your owner onboarding
@@ -195,8 +195,8 @@ export function OwnerAccessScreen({
   if (state === "owner_unavailable") {
     return (
       <section className="section-space">
-        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="surface-card rounded-[32px] p-6 sm:p-8">
+        <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+          <div className="surface-card h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Hosting</p>
             <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
               Hosting is active, but details are unavailable
@@ -215,7 +215,7 @@ export function OwnerAccessScreen({
             </div>
           </div>
 
-          <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
+          <div className="surface-card-soft h-full rounded-[32px] p-6 sm:p-8">
             <p className="eyebrow-label">Current state</p>
             <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
               Your account role is correct
@@ -237,8 +237,8 @@ export function OwnerAccessScreen({
 
   return (
     <section className="section-space">
-      <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="surface-card rounded-[32px] p-6 sm:p-8">
+      <div className="page-shell grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+        <div className="surface-card h-full rounded-[32px] p-6 sm:p-8">
           <p className="eyebrow-label">Hosting</p>
           <h1 className="mt-3 font-display text-4xl text-[var(--color-ink)]">
             Your hosting dashboard is ready
@@ -259,7 +259,7 @@ export function OwnerAccessScreen({
           </div>
         </div>
 
-        <div className="surface-card-soft rounded-[32px] p-6 sm:p-8">
+        <div className="surface-card-soft h-full rounded-[32px] p-6 sm:p-8">
           <p className="eyebrow-label">Current hosting flow</p>
           <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
             Everything continues from here

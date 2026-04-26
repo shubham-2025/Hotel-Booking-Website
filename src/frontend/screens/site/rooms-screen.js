@@ -10,8 +10,8 @@ export async function RoomsScreen({ searchParams }) {
     <section className="section-space">
       <div className="page-shell">
         <div className="overflow-hidden rounded-[36px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,rgba(19,48,75,0.96),rgba(39,89,131,0.94),rgba(137,186,229,0.82))] p-6 text-white shadow-[var(--shadow-lift)] sm:p-7">
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
-            <div className="max-w-3xl text-left">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-stretch">
+            <div className="flex max-w-3xl flex-col justify-between text-left">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/68">
                 Find your stay
               </p>
@@ -24,8 +24,8 @@ export async function RoomsScreen({ searchParams }) {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+              <div className="flex h-full flex-col rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
                   Search mode
                 </p>
@@ -34,7 +34,7 @@ export async function RoomsScreen({ searchParams }) {
                   the list context.
                 </p>
               </div>
-              <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <div className="flex h-full flex-col rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
                   Current city
                 </p>

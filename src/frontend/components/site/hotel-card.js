@@ -6,9 +6,10 @@ export function HotelCard({ room, featuredLabel = "Best Seller" }) {
   return (
     <Link
       href={`/rooms/${room._id}`}
-      className="group motion-lift surface-card overflow-hidden rounded-[30px]"
+      className="group motion-lift surface-card flex h-full overflow-hidden rounded-[30px]"
     >
-      <div className="relative aspect-[4/2.75] overflow-hidden">
+      <div className="flex h-full w-full flex-col">
+        <div className="relative aspect-[4/2.75] overflow-hidden">
         <img
           src={room.images[0]}
           alt={room.hotel.name}
@@ -20,14 +21,14 @@ export function HotelCard({ room, featuredLabel = "Best Seller" }) {
         <span className="absolute right-4 top-4 rounded-full bg-[rgba(18,36,59,0.8)] px-3 py-1 text-sm font-semibold text-white backdrop-blur">
           4.8
         </span>
-      </div>
-      <div className="space-y-3 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        </div>
+        <div className="flex h-full flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
               {room.hotel.city}
             </p>
-            <p className="mt-2 line-clamp-2 font-display text-[1.45rem] leading-tight text-[var(--color-ink)]">
+            <p className="mt-2 line-clamp-2 break-words font-display text-[1.45rem] leading-tight text-[var(--color-ink)] [overflow-wrap:anywhere]">
               {room.hotel.name}
             </p>
             <p className="mt-1 text-sm font-medium text-[var(--color-muted)]">
@@ -53,7 +54,7 @@ export function HotelCard({ room, featuredLabel = "Best Seller" }) {
             </span>
           ))}
         </div>
-        <div className="flex items-center justify-between gap-4 border-t border-[var(--color-line)] pt-3">
+        <div className="mt-auto flex items-center justify-between gap-4 border-t border-[var(--color-line)] pt-3">
           <p className="text-lg font-semibold text-[var(--color-ink)]">
             {formatCurrency(room.pricePerNight)}
             <span className="text-sm font-normal text-[var(--color-muted)]">
@@ -65,6 +66,7 @@ export function HotelCard({ room, featuredLabel = "Best Seller" }) {
             View stay
           </span>
         </div>
+      </div>
       </div>
     </Link>
   );

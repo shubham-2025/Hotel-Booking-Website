@@ -3,6 +3,9 @@ import { toggleOwnerHotelAvailabilityAction } from "@/src/backend/owner/owner-ho
 import { getOwnerHotelBootstrapData } from "@/src/backend/repositories/owner-repository";
 import { QueryStatusToast } from "@/src/frontend/components/feedback/query-status-toast.client";
 import { PendingSubmitButton } from "@/src/frontend/components/shared/pending-submit-button.client";
+import { OwnerPageHeader } from "@/src/frontend/components/owner/owner-page-header";
+import { OwnerPropertyPreviewCard } from "@/src/frontend/components/owner/owner-property-preview-card";
+import { OwnerStatGrid } from "@/src/frontend/components/owner/owner-stat-grid";
 import { HotelSetupPanel } from "@/src/frontend/features/owner/hotel-setup-panel.client";
 
 const noticeMessages = {
@@ -30,90 +33,10 @@ function formatHotelStatus(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function PropertyHero({ primaryHotel, totalHotels, isHotelActive }) {
+function VisibilityWorkspaceCard({ primaryHotel, isHotelActive }) {
   return (
-    <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,#f7fbff,#ffffff)] p-6 shadow-[var(--shadow-lift)]">
-      <div className="grid gap-6">
-        <div className="overflow-hidden rounded-[28px] border border-[var(--color-line)] bg-white shadow-[0_18px_40px_rgba(18,36,59,0.08)]">
-          <img
-            src={
-              primaryHotel?.heroImageUrl ||
-              "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
-            }
-            alt={primaryHotel?.name}
-            className="aspect-[16/9] w-full object-cover"
-          />
-        </div>
-
-        <div className="min-w-0 rounded-[28px] border border-[rgba(213,225,239,0.92)] bg-white/88 p-5 shadow-[0_14px_30px_rgba(18,36,59,0.05)] sm:p-6">
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
-              Signature profile
-            </span>
-            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-              {formatHotelStatus(primaryHotel?.status)}
-            </span>
-            <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
-              {totalHotels} hotel{totalHotels === 1 ? "" : "s"}
-            </span>
-          </div>
-
-          <div className="mt-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-              Featured property
-            </p>
-            <h2 className="mt-2 break-words font-display text-3xl text-[var(--color-ink)] sm:text-4xl">
-              {primaryHotel?.name}
-            </h2>
-            <p className="mt-3 max-w-3xl break-words text-sm leading-7 text-[var(--color-muted)]">
-              {primaryHotel?.city} | {primaryHotel?.address}
-            </p>
-          </div>
-
-          {primaryHotel?.description ? (
-            <p className="mt-5 max-w-4xl break-words text-sm leading-8 text-[var(--color-muted)]">
-              {primaryHotel.description}
-            </p>
-          ) : (
-            <p className="mt-5 max-w-4xl text-sm leading-8 text-[var(--color-muted)]">
-              Share a few thoughtful details about the mood, location, and
-              comfort of your hotel so guests know what makes the stay memorable.
-            </p>
-          )}
-
-          {primaryHotel?.amenities?.length ? (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {primaryHotel.amenities.map((amenity) => (
-                <span
-                  key={amenity}
-                  className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-muted)] ring-1 ring-[var(--color-line)]"
-                >
-                  {amenity}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-6 rounded-[24px] border border-[rgba(213,225,239,0.92)] bg-[linear-gradient(180deg,rgba(247,251,255,0.92),rgba(255,255,255,0.98))] p-5 shadow-[0_14px_30px_rgba(18,36,59,0.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-              Guest impression
-            </p>
-            <p className="mt-3 text-sm leading-8 text-[var(--color-muted)]">
-              {isHotelActive
-                ? "Your property is open to travelers. Keep the details elegant, current, and reassuring so the first impression matches the stay."
-                : "Your property is currently private. Take time to perfect the story, visuals, and details before you welcome guests in."}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function VisibilityCard({ primaryHotel, isHotelActive }) {
-  return (
-    <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(180deg,#ffffff,#f7fbff)] p-6 shadow-[var(--shadow-soft)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
+    <aside className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
         Visibility
       </p>
       <h2 className="mt-3 font-display text-3xl text-[var(--color-ink)]">
@@ -121,13 +44,31 @@ function VisibilityCard({ primaryHotel, isHotelActive }) {
       </h2>
       <p className="mt-3 text-sm leading-8 text-[var(--color-muted)]">
         {isHotelActive
-          ? "Travelers can discover this hotel while browsing available stays. Keep the listing active when the imagery, details, and contact information feel ready."
-          : "Keep the hotel private until everything feels refined. When you are ready, publish it so travelers can discover the experience you have created."}
+          ? "Travelers can find this property while browsing public stays. Keep the listing open only when the core details and imagery feel current."
+          : "Keep the property private until the story, address, and contact details feel complete and reassuring."}
       </p>
 
-      <div className="mt-5 rounded-[26px] bg-[rgba(231,244,255,0.72)] px-4 py-4 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[rgba(188,208,229,0.72)]">
-        Rooms become visible only when both the hotel and the room are available
-        to guests.
+      <div className="mt-5 space-y-3">
+        <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[var(--color-line)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Current state
+          </p>
+          <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+            {isHotelActive
+              ? "Rooms can appear to guests only when both the hotel and the room itself are active."
+              : "Even active rooms remain hidden until the hotel is published from this page."}
+          </p>
+        </div>
+
+        <div className="rounded-[22px] bg-white px-4 py-4 ring-1 ring-[var(--color-line)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Contact path
+          </p>
+          <p className="mt-2 text-sm leading-7 text-[var(--color-muted)]">
+            Use a polished property profile here first, then move to room
+            collection when the hotel is ready for guests.
+          </p>
+        </div>
       </div>
 
       <form action={toggleOwnerHotelAvailabilityAction} className="mt-6">
@@ -145,16 +86,32 @@ function VisibilityCard({ primaryHotel, isHotelActive }) {
           className="button-primary min-h-11 w-full px-5"
         />
       </form>
+    </aside>
+  );
+}
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link href="/owner" className="button-secondary min-h-11 px-5">
-          Back to dashboard
-        </Link>
-        <Link href="/owner/list-room" className="button-secondary min-h-11 px-5">
-          View rooms
-        </Link>
+function SetupFormSection({ hotelSetupData, primaryHotel }) {
+  return (
+    <section className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-white/96 p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Property details
+          </p>
+          <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+            Keep the profile clean and current
+          </h2>
+        </div>
       </div>
-    </div>
+
+      <div className="mt-6">
+        <HotelSetupPanel
+          profile={hotelSetupData.profile}
+          hotel={primaryHotel}
+          mode={primaryHotel ? "edit" : "create"}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -179,17 +136,13 @@ export async function OwnerHotelSetupScreen({ searchParams }) {
 
   if (hotelSetupData.status === "unavailable") {
     return (
-      <div>
+      <div className="space-y-8">
         {feedbackToast}
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-          Property profile
-        </p>
-        <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Property details are temporarily unavailable
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-muted)]">
-          {hotelSetupData.reason}
-        </p>
+        <OwnerPageHeader
+          eyebrow="Property profile"
+          title="Property details are temporarily unavailable"
+          description={hotelSetupData.reason}
+        />
       </div>
     );
   }
@@ -197,97 +150,112 @@ export async function OwnerHotelSetupScreen({ searchParams }) {
   if (hotelSetupData.status !== "no_hotel") {
     const primaryHotel = hotelSetupData.primaryHotel;
     const isHotelActive = primaryHotel?.status === "active";
+    const stats = [
+      {
+        label: "Property status",
+        value: formatHotelStatus(primaryHotel?.status),
+        tone: "accent",
+      },
+      {
+        label: "Hotels in workspace",
+        value: hotelSetupData.metrics.totalHotels,
+        tone: "neutral",
+      },
+      {
+        label: "Room visibility rule",
+        value: isHotelActive ? "Hotel open" : "Hotel private",
+        tone: isHotelActive ? "success" : "warm",
+      },
+    ];
 
     return (
-      <div>
+      <div className="space-y-8">
         {feedbackToast}
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-          Property profile
-        </p>
-        <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-          Present your hotel with warmth, clarity, and confidence
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
-          Shape the feeling guests get before they arrive. Update your story,
-          imagery, and visibility so the property feels polished, welcoming,
-          and ready to book.
-        </p>
+        <OwnerPageHeader
+          eyebrow="Property profile"
+          title="Present your hotel with clarity and confidence"
+          description="Keep the hotel story, guest-facing details, and public visibility aligned from one structured workspace."
+          actions={
+            <>
+              <Link href="/owner/list-room" className="button-primary min-h-11 px-5">
+                Room collection
+              </Link>
+              <Link href="/owner" className="button-secondary min-h-11 px-5">
+                Back to dashboard
+              </Link>
+            </>
+          }
+        />
 
-        <div className="mt-8 grid gap-5 2xl:grid-cols-[minmax(0,1.18fr)_320px]">
-          <PropertyHero
+        <OwnerStatGrid items={stats} columnsClass="md:grid-cols-3" />
+
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_320px]">
+          <OwnerPropertyPreviewCard
+            imageUrl={
+              primaryHotel?.heroImageUrl ||
+              "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200&auto=format&fit=crop"
+            }
+            imageAlt={primaryHotel?.name}
+            meta={
+              <>
+                <span className="rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
+                  {formatHotelStatus(primaryHotel?.status)}
+                </span>
+                <span className="rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+                  {hotelSetupData.metrics.totalHotels} hotel
+                  {hotelSetupData.metrics.totalHotels === 1 ? "" : "s"}
+                </span>
+              </>
+            }
+            name={primaryHotel?.name}
+            location={`${primaryHotel?.city} | ${primaryHotel?.address}`}
+            description={
+              primaryHotel?.description ||
+              "Use this page to keep the hotel story, imagery, and guest-facing details aligned before rooms go fully public."
+            }
+            amenities={primaryHotel?.amenities || []}
+            note={
+              isHotelActive
+                ? "This property is open to discovery. Keep the content current so the listing feels trustworthy before guests ever open a room."
+                : "This property is still private. Refine the details here first, then open it when the experience feels ready to present."
+            }
+          />
+          <VisibilityWorkspaceCard
             primaryHotel={primaryHotel}
-            totalHotels={hotelSetupData.metrics.totalHotels}
             isHotelActive={isHotelActive}
           />
-          <VisibilityCard
-            primaryHotel={primaryHotel}
-            isHotelActive={isHotelActive}
-          />
         </div>
 
-        <div className="mt-8 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-white/94 p-6 shadow-[var(--shadow-soft)]">
-            <HotelSetupPanel
-              profile={hotelSetupData.profile}
-              hotel={primaryHotel}
-              mode="edit"
-            />
-          </div>
-
-          <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(180deg,#ffffff,#f7fbff)] p-6 shadow-[var(--shadow-soft)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-              Visibility notes
-            </p>
-            <div className="mt-4 space-y-3 text-sm leading-8 text-[var(--color-muted)]">
-              <p>1. Publish only when the hotel story, imagery, and details feel complete.</p>
-              <p>2. A room can welcome guests only when both the room and the hotel are active.</p>
-              <p>3. Clear presentation builds trust before a guest ever steps inside.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/owner" className="button-secondary min-h-11 px-5">
-            Back to dashboard
-          </Link>
-          <Link href="/owner/list-room" className="button-primary min-h-11 px-5">
-            Continue to room collection
-          </Link>
-        </div>
+        <SetupFormSection
+          hotelSetupData={hotelSetupData}
+          primaryHotel={primaryHotel}
+        />
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {feedbackToast}
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
-        Property profile
-      </p>
-      <h1 className="mt-2 font-display text-4xl text-[var(--color-ink)]">
-        Welcome your first property, {ownerName}
-      </h1>
-      <p className="mt-3 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
-        Begin with the details guests notice first: your name, imagery,
-        location, and the personality of the stay. Once this profile is ready,
-        you can continue into rooms, rates, and bookings.
-      </p>
+      <OwnerPageHeader
+        eyebrow="Property profile"
+        title={`Welcome your first property, ${ownerName}`}
+        description="Start with the hotel profile that rooms, pricing, and guest stays will build on. This page becomes the foundation for the rest of the owner workspace."
+      />
 
-      <div className="mt-8 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-white/94 p-6 shadow-[var(--shadow-soft)]">
-          <HotelSetupPanel profile={hotelSetupData.profile} />
-        </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <SetupFormSection hotelSetupData={hotelSetupData} primaryHotel={null} />
 
-        <div className="overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(180deg,#ffffff,#f7fbff)] p-6 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-highlight)]">
-            A calm launch path
+        <aside className="rounded-[32px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+            Launch path
           </p>
           <div className="mt-4 space-y-3 text-sm leading-8 text-[var(--color-muted)]">
-            <p>1. Your property becomes the heart of the hosting workspace.</p>
-            <p>2. The dashboard begins reflecting your hotel imagery and details.</p>
-            <p>3. You can then add rooms, pricing, and guest-ready presentation.</p>
+            <p>1. Save the property profile with its location, tone, and guest-facing essentials.</p>
+            <p>2. Continue into room collection to add pricing, images, and availability.</p>
+            <p>3. Open the hotel only when both the property and selected rooms are ready for public discovery.</p>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

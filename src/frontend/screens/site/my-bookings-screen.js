@@ -185,7 +185,7 @@ export async function MyBookingsScreen({ searchParams }) {
         />
 
         <div className="mt-8 overflow-hidden rounded-[34px] border border-[rgba(188,208,229,0.9)] bg-[linear-gradient(135deg,rgba(19,48,75,0.96),rgba(39,89,131,0.94),rgba(137,186,229,0.82))] p-6 text-white shadow-[var(--shadow-lift)] sm:p-7">
-          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px] xl:items-stretch">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/68">
                 Booking overview
@@ -199,8 +199,8 @@ export async function MyBookingsScreen({ searchParams }) {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex h-full flex-col rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
                   Total
                 </p>
@@ -208,7 +208,7 @@ export async function MyBookingsScreen({ searchParams }) {
                   {bookings.length}
                 </p>
               </div>
-              <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <div className="flex h-full flex-col rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
                   Open stays
                 </p>
@@ -216,7 +216,7 @@ export async function MyBookingsScreen({ searchParams }) {
                   {openCount}
                 </p>
               </div>
-              <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
+              <div className="flex h-full flex-col rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/66">
                   Paid / completed
                 </p>
@@ -234,20 +234,20 @@ export async function MyBookingsScreen({ searchParams }) {
               key={booking._id}
               className="overflow-hidden rounded-[34px] border border-[rgba(205,220,236,0.96)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,253,0.98))] p-5 shadow-[var(--shadow-soft)]"
             >
-              <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_220px]">
+              <div className="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)_230px]">
                 <img
                   src={booking.room.images[0]}
                   alt={booking.hotel.name}
                   className="aspect-[4/3] w-full rounded-[24px] object-cover"
                 />
 
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
                         {booking.hotel.city || booking.hotel.address}
                       </p>
-                      <h2 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+                      <h2 className="mt-2 break-words font-display text-3xl text-[var(--color-ink)] [overflow-wrap:anywhere]">
                         {booking.room.name}
                       </h2>
                       <p className="mt-2 text-sm font-medium text-[var(--color-ink)]">
@@ -263,13 +263,15 @@ export async function MyBookingsScreen({ searchParams }) {
                       {booking.room.roomType}
                     </p>
                   ) : null}
-                  <div className="mt-4 flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                  <div className="mt-4 flex min-w-0 items-center gap-2 text-sm text-[var(--color-muted)]">
                     <img
                       src={siteAssets.locationIcon}
                       alt=""
                       className="h-4 w-4 opacity-70"
                     />
-                    <span>{booking.hotel.address}</span>
+                    <span className="break-words [overflow-wrap:anywhere]">
+                      {booking.hotel.address}
+                    </span>
                   </div>
 
                   {booking.notes ? (

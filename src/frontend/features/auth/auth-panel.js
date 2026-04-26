@@ -13,8 +13,8 @@ export function AuthPanel({
   return (
     <section className="section-space">
       <div className="page-shell">
-        <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[0.94fr_1.06fr]">
-          <div className="relative overflow-hidden rounded-[36px] bg-[linear-gradient(135deg,#12243b,#1f4e86,#82b0de)] p-7 text-white shadow-[var(--shadow-lift)] sm:p-8">
+        <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[0.94fr_1.06fr] xl:items-stretch">
+          <div className="relative h-full overflow-hidden rounded-[36px] bg-[linear-gradient(135deg,#12243b,#1f4e86,#82b0de)] p-7 text-white shadow-[var(--shadow-lift)] sm:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_28%)]" />
             <div className="relative">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/72">
@@ -36,7 +36,7 @@ export function AuthPanel({
                 ].map((item) => (
                   <div
                     key={item}
-                    className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 text-sm leading-7 text-white/82 backdrop-blur-sm"
+                    className="flex h-full items-center rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 text-sm leading-7 text-white/82 backdrop-blur-sm"
                   >
                     {item}
                   </div>
@@ -55,7 +55,7 @@ export function AuthPanel({
             </div>
           </div>
 
-          <div className="rounded-[36px] border border-[rgba(213,225,239,0.92)] bg-white/88 p-1 shadow-[var(--shadow-lift)] backdrop-blur-xl">
+          <div className="h-full rounded-[36px] border border-[rgba(213,225,239,0.92)] bg-white/88 p-1 shadow-[var(--shadow-lift)] backdrop-blur-xl">
             <div className="h-full overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,251,253,0.96))]">
               <div className="border-b border-[var(--color-line)] bg-[linear-gradient(135deg,rgba(233,245,255,0.88),rgba(255,255,255,0.92))] px-6 py-6 sm:px-8">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">

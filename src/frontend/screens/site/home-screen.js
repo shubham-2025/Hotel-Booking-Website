@@ -168,7 +168,7 @@ export async function HomeScreen() {
             {travelerReasons.map((item) => (
               <article
                 key={item.title}
-                className="surface-card motion-lift rounded-[30px] p-6"
+                className="surface-card motion-lift h-full rounded-[30px] p-6"
               >
                 <p className="eyebrow-label">Traveler benefit</p>
                 <h3 className="mt-4 font-display text-[1.6rem] text-[var(--color-ink)]">
@@ -195,7 +195,7 @@ export async function HomeScreen() {
             {exclusiveOffers.map((offer) => (
               <article
                 key={offer._id}
-                className="motion-lift relative overflow-hidden rounded-[32px] p-6 text-white shadow-[var(--shadow-soft)]"
+                className="motion-lift relative h-full overflow-hidden rounded-[32px] p-6 text-white shadow-[var(--shadow-soft)]"
               >
                 <img
                   src={offer.image}
@@ -285,7 +285,7 @@ export async function HomeScreen() {
               {testimonials.map((testimonial) => (
                 <article
                   key={testimonial.id}
-                  className="surface-card motion-lift rounded-[28px] p-5"
+                  className="surface-card motion-lift h-full rounded-[28px] p-5"
                 >
                   <div className="flex items-center gap-4">
                     <img

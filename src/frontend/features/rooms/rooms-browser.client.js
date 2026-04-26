@@ -66,8 +66,8 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <aside className="surface-card lg:sticky lg:top-24 lg:self-start">
+    <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <aside className="surface-card xl:sticky xl:top-24 xl:self-start">
         <div className="p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -182,7 +182,7 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
         </div>
       </aside>
 
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0">
         <div className="surface-card flex flex-col gap-4 rounded-[28px] p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="eyebrow-label">Search summary</p>
@@ -232,22 +232,22 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
               <Link
                 key={room._id}
                 href={`/rooms/${room._id}`}
-                className="group surface-card motion-lift overflow-hidden rounded-[28px]"
+                className="group surface-card motion-lift h-full overflow-hidden rounded-[28px]"
               >
-                <div className="grid gap-5 p-4 sm:p-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+                <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[320px_minmax(0,1fr)]">
                   <img
                     src={room.images[0]}
                     alt={room.hotel.name}
                     className="aspect-[4/3] w-full rounded-[22px] object-cover"
                   />
-                  <div className="flex flex-col justify-between gap-5">
+                  <div className="flex min-w-0 flex-col justify-between gap-5">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
                             {room.hotel.city}
                           </p>
-                          <h3 className="mt-2 font-display text-3xl text-[var(--color-ink)]">
+                          <h3 className="mt-2 break-words font-display text-3xl text-[var(--color-ink)] [overflow-wrap:anywhere]">
                             {room.hotel.name}
                           </h3>
                           <p className="mt-1 text-sm font-medium text-[var(--color-muted)]">
@@ -259,13 +259,15 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                      <div className="flex min-w-0 items-center gap-2 text-sm text-[var(--color-muted)]">
                         <img
                           src={siteAssets.locationIcon}
                           alt=""
                           className="h-4 w-4 opacity-70"
                         />
-                        <span>{room.hotel.address}</span>
+                        <span className="line-clamp-2 break-words [overflow-wrap:anywhere]">
+                          {room.hotel.address}
+                        </span>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
