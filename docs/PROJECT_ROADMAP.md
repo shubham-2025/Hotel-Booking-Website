@@ -36,6 +36,9 @@
 - Booking lifecycle emails now send through configurable transactional email infrastructure, with Brevo SMTP ready for booking, status, and payment notifications.
 - Confirmed unpaid bookings can now open a real Stripe Checkout payment flow from `/my-bookings`.
 - Successful Stripe checkout now updates booking payment status to `paid` for traveler and owner views.
+- Booking overlap protection is now backed by a database-level exclusion constraint instead of only an application check.
+- Booking payments now store minimal Stripe audit metadata and can recover paid status from stored checkout sessions if the first sync path is missed.
+- Paid bookings now expose a branded QuickStay invoice view from `/my-bookings` and from traveler payment emails.
 - Global toast notifications now surface key auth, booking, payment, and owner workflow feedback instead of relying only on inline banners.
 - Shared site and owner shells now use a more polished layout system, with upgraded auth, bookings, rooms, and detail-page presentation.
 
@@ -103,6 +106,7 @@
 - Basic owner booking status updates now support `pending -> confirmed`, `pending -> cancelled`, and `confirmed -> completed`.
 - Stripe Checkout payment status updates now move bookings from `unpaid` to `paid`.
 - Owners can now complete a confirmed stay only after payment is received.
+- Stripe payment state now keeps minimal provider/session/intent audit fields and includes a stronger recovery path for missed webhook or return-sync moments.
 
 ### Phase 5: Owner workflows
 
@@ -122,6 +126,7 @@
 - Send booking confirmation, cancellation, and completion emails to traveler.
 - Add booking inquiry receipt to guest.
 - Booking payment confirmation emails now send to traveler and owner when payment is captured successfully.
+- Traveler payment confirmation now includes a direct invoice download link, and paid bookings expose the same branded invoice from `/my-bookings`.
 
 ### Phase 7: Deployment and ops
 

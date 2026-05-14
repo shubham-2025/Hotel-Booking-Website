@@ -7,6 +7,7 @@ import {
   renderTransactionalEmail,
   sendTransactionalEmail,
 } from "@/src/backend/email/transactional-email";
+import { buildBookingInvoiceUrl } from "@/src/backend/invoices/booking-invoice-access";
 
 function getTravelerGreeting(fullName) {
   return fullName ? `Hi ${fullName},` : "Hi there,";
@@ -81,6 +82,14 @@ function buildNotesHtml(context) {
     </p>`;
 }
 
+function getTravelerInvoiceUrl(context, options = {}) {
+  return buildBookingInvoiceUrl(
+    context.booking?.id || "",
+    context.booking?.userId || "",
+    options,
+  );
+}
+
 function buildTravelerEmailPayload({
   context,
   subject,
@@ -90,6 +99,8 @@ function buildTravelerEmailPayload({
   lead,
   tone = "accent",
   closingText,
+  secondaryActionLabel = "",
+  secondaryActionUrl = "",
 }) {
   return {
     to: context.traveler?.email || "",
@@ -114,6 +125,8 @@ function buildTravelerEmailPayload({
       ],
       actionLabel: "View my booking",
       actionUrl: getTravelerBookingsUrl(),
+      secondaryActionLabel,
+      secondaryActionUrl,
       closingText,
     }),
     text: [
@@ -130,6 +143,13 @@ function buildTravelerEmailPayload({
       "",
       "View your booking here:",
       getTravelerBookingsUrl(),
+      ...(secondaryActionLabel && secondaryActionUrl
+        ? [
+            "",
+            `${secondaryActionLabel}:`,
+            secondaryActionUrl,
+          ]
+        : []),
       "",
       closingText,
     ].join("\n"),
@@ -305,6 +325,9 @@ export async function sendBookingPaymentEmails(context) {
     };
   }
 
+  const travelerInvoiceUrl = getTravelerInvoiceUrl(context, {
+    download: true,
+  });
   const travelerResult = context.traveler?.email
     ? await sendTransactionalEmail(
         buildTravelerEmailPayload({
@@ -315,8 +338,10 @@ export async function sendBookingPaymentEmails(context) {
           title: "Your booking payment is complete",
           lead: `We received your payment${context.booking?.paymentMethod ? ` via ${formatStatusLabel(context.booking.paymentMethod)}` : ""}. Your booking now shows as paid in your traveler account.`,
           tone: "success",
+          secondaryActionLabel: travelerInvoiceUrl ? "Download invoice" : "",
+          secondaryActionUrl: travelerInvoiceUrl,
           closingText:
-            "Keep this email for your records, and open your booking page anytime if you want to review the latest stay details.",
+            "Keep this email for your records, and download the QuickStay invoice anytime you need a polished payment copy.",
         }),
       )
     : false;

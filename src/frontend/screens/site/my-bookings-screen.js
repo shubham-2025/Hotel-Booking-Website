@@ -348,6 +348,20 @@ export async function MyBookingsScreen({ searchParams }) {
                     </p>
                     {booking.canPayOnline ? (
                       <BookingPaymentButton bookingId={booking._id} />
+                    ) : booking.paymentStatus === "paid" ? (
+                      <div className="mt-2 space-y-3">
+                        <p className="rounded-[18px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
+                          {booking.paymentActionMessage}
+                        </p>
+                        <Link
+                          href={`/my-bookings/invoices/${booking._id}?download=1`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="button-secondary min-h-11 w-full px-4 text-center"
+                        >
+                          Download invoice
+                        </Link>
+                      </div>
                     ) : (
                       <p className="mt-2 rounded-[18px] bg-[var(--color-card-soft)] px-4 py-3 text-sm leading-7 text-[var(--color-muted)] ring-1 ring-[var(--color-line)]">
                         {booking.paymentActionMessage}

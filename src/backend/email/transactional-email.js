@@ -97,16 +97,57 @@ function renderContentBlocks(blocks = []) {
     .join("");
 }
 
-function renderActionButton(label, url, buttonStart, buttonEnd) {
+function renderPrimaryActionButton(label, url, buttonStart, buttonEnd) {
   if (!label || !url) {
     return "";
   }
 
   return `
+    <a href="${escapeHtml(url)}" style="display: inline-block; margin: 0 12px 12px 0; min-width: 220px; text-align: center; padding: 14px 24px; border-radius: 999px; background: linear-gradient(135deg, ${buttonStart}, ${buttonEnd}); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700;">
+      ${escapeHtml(label)}
+    </a>`;
+}
+
+function renderSecondaryActionButton(label, url) {
+  if (!label || !url) {
+    return "";
+  }
+
+  return `
+    <a href="${escapeHtml(url)}" style="display: inline-block; margin: 0 12px 12px 0; min-width: 220px; text-align: center; padding: 13px 24px; border-radius: 999px; border: 1px solid ${EMAIL_THEME.line}; background: ${EMAIL_THEME.card}; color: ${EMAIL_THEME.ink}; text-decoration: none; font-size: 14px; font-weight: 700;">
+      ${escapeHtml(label)}
+    </a>`;
+}
+
+function renderActionButtons({
+  actionLabel,
+  actionUrl,
+  secondaryActionLabel,
+  secondaryActionUrl,
+  buttonStart,
+  buttonEnd,
+}) {
+  const primaryAction = renderPrimaryActionButton(
+    actionLabel,
+    actionUrl,
+    buttonStart,
+    buttonEnd,
+  );
+  const secondaryAction = renderSecondaryActionButton(
+    secondaryActionLabel,
+    secondaryActionUrl,
+  );
+
+  if (!primaryAction && !secondaryAction) {
+    return "";
+  }
+
+  return `
     <div style="margin-top: 28px;">
-      <a href="${escapeHtml(url)}" style="display: inline-block; min-width: 220px; text-align: center; padding: 14px 24px; border-radius: 999px; background: linear-gradient(135deg, ${buttonStart}, ${buttonEnd}); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700;">
-        ${escapeHtml(label)}
-      </a>
+      <div style="font-size: 0;">
+        ${primaryAction}
+        ${secondaryAction}
+      </div>
     </div>`;
 }
 
@@ -121,6 +162,8 @@ export function renderTransactionalEmail({
   contentBlocks = [],
   actionLabel = "",
   actionUrl = "",
+  secondaryActionLabel = "",
+  secondaryActionUrl = "",
   closingText = "Thank you for choosing QuickStay.",
 }) {
   const colors = getToneColors(tone);
@@ -161,12 +204,14 @@ export function renderTransactionalEmail({
                       <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.75; color: ${EMAIL_THEME.muted};">
                         ${escapeHtml(lead)}
                       </p>
-                      ${renderActionButton(
+                      ${renderActionButtons({
                         actionLabel,
                         actionUrl,
-                        colors.buttonStart,
-                        colors.buttonEnd,
-                      )}
+                        secondaryActionLabel,
+                        secondaryActionUrl,
+                        buttonStart: colors.buttonStart,
+                        buttonEnd: colors.buttonEnd,
+                      })}
                     </div>
                     <div style="padding: 28px 34px 34px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">

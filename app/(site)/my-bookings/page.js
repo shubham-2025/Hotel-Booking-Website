@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/src/backend/auth/get-current-user";
-import { syncBookingPaymentFromCheckoutSession } from "@/src/backend/services/booking-payment-service";
+import {
+  syncBookingPaymentFromCheckoutSession,
+  syncTravelerPendingBookingPayments,
+} from "@/src/backend/services/booking-payment-service";
 import { MyBookingsScreen } from "@/src/frontend/screens/site/my-bookings-screen";
 
 export const metadata = {
@@ -50,6 +53,8 @@ export default async function MyBookingsPage({ searchParams }) {
 
     redirect(buildMyBookingsRedirect({ error: syncResult.errorCode || "payment_sync_failed" }));
   }
+
+  await syncTravelerPendingBookingPayments(currentUser.id);
 
   return <MyBookingsScreen searchParams={params} />;
 }

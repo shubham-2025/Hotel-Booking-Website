@@ -6,14 +6,18 @@ import {
 import { getStripeClient } from "@/src/backend/payments/stripe-server";
 import {
   getBookingNotificationContext,
+  getTravelerStripePaymentRecoveryCandidates,
   getTravelerBookingCheckoutData,
   markBookingAsPaid,
+  recordBookingPaymentCheckpoint,
 } from "@/src/backend/repositories/bookings-repository";
 import { sendBookingPaymentEmails } from "@/src/backend/services/booking-email-service";
 
 const CHECKOUT_SUCCESS_NOTICE = "payment_completed";
 const CHECKOUT_CANCELLED_ERROR = "payment_cancelled";
 const STRIPE_CURRENCY = "usd";
+const CHECKOUT_PROCESSING_MESSAGE =
+  "Your previous payment is still being processed. Please refresh My Bookings in a moment before starting another checkout.";
 
 function buildMyBookingsUrl(params = {}) {
   const url = new URL("/my-bookings", env.siteUrl);
@@ -49,6 +53,60 @@ function getUnitAmountInCents(totalPrice) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function buildCheckoutIdempotencyKey(booking) {
+  if (booking?.paymentTrackingAvailable === false) {
+    return `booking-checkout-${booking?.id || "unknown"}-${Date.now()}`;
+  }
+
+  const paymentReference = booking?.paymentReference || "initial";
+  return `booking-checkout-${booking?.id || "unknown"}-${paymentReference}`;
+}
+
+function getStripeObjectId(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return value.id || "";
+}
+
+function getStripeTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  return new Date(value * 1000).toISOString();
+}
+
+async function recordCheckoutSessionState(
+  bookingId,
+  session,
+  {
+    paymentLastEvent = "",
+    paymentLastError = "",
+    paymentPaidAt = null,
+  } = {},
+) {
+  if (!bookingId || !session?.id) {
+    return false;
+  }
+
+  return recordBookingPaymentCheckpoint(bookingId, {
+    paymentProvider: "stripe",
+    paymentReference: session.id,
+    paymentIntentId: getStripeObjectId(session.payment_intent),
+    paymentPaidAt,
+    paymentLastEvent:
+      paymentLastEvent || session.payment_status || session.status || "checkout_observed",
+    paymentLastError,
+    occurredAt: getStripeTimestamp(session.created),
+  });
+}
+
 async function markSessionBookingAsPaid(session, travelerId = "") {
   const bookingId =
     session.metadata?.bookingId || session.client_reference_id || "";
@@ -70,6 +128,11 @@ async function markSessionBookingAsPaid(session, travelerId = "") {
     };
   }
 
+  await recordCheckoutSessionState(bookingId, session, {
+    paymentLastEvent:
+      session.payment_status === "paid" ? "payment_received" : "checkout_observed",
+  });
+
   if (session.payment_status !== "paid") {
     return {
       status: "not_paid",
@@ -78,7 +141,14 @@ async function markSessionBookingAsPaid(session, travelerId = "") {
     };
   }
 
-  const result = await markBookingAsPaid(bookingId, "stripe");
+  const result = await markBookingAsPaid(bookingId, {
+    paymentMethod: "stripe",
+    paymentProvider: "stripe",
+    paymentReference: session.id,
+    paymentIntentId: getStripeObjectId(session.payment_intent),
+    paymentPaidAt: getStripeTimestamp(session.created),
+    paymentLastEvent: "payment_received",
+  });
 
   if (result.status === "updated") {
     const notificationContextResult = await getBookingNotificationContext(
@@ -122,6 +192,105 @@ async function markSessionBookingAsPaid(session, travelerId = "") {
       result.reason ||
       "We could not update this booking payment right now.",
   };
+}
+
+async function resolveExistingCheckoutSession(checkoutData, stripe) {
+  const booking = checkoutData?.booking;
+  const paymentReference = booking?.paymentReference || "";
+
+  if (!booking?.id || !paymentReference) {
+    return {
+      status: "create_new",
+      session: null,
+      url: "",
+      message: "",
+    };
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(paymentReference);
+
+    if (session.payment_status === "paid") {
+      const syncResult = await markSessionBookingAsPaid(session, booking.userId);
+
+      if (
+        syncResult.status === "updated" ||
+        syncResult.status === "already_paid"
+      ) {
+        return {
+          status: "already_paid",
+          session,
+          url: "",
+          message: "This booking has already been paid.",
+        };
+      }
+
+      return {
+        status: "unavailable",
+        session,
+        url: "",
+        message:
+          syncResult.reason ||
+          "We could not verify your latest Stripe payment right now. Please refresh in a moment.",
+      };
+    }
+
+    if (session.status === "open" && session.url) {
+      return {
+        status: "reuse_existing",
+        session,
+        url: session.url,
+        message: "",
+      };
+    }
+
+    if (session.status === "expired") {
+      await recordCheckoutSessionState(booking.id, session, {
+        paymentLastEvent: "checkout_expired",
+        paymentLastError:
+          "Your previous payment session expired before payment completed.",
+      });
+
+      return {
+        status: "create_new",
+        session,
+        url: "",
+        message: "",
+      };
+    }
+
+    if (
+      booking.paymentLastEvent === "payment_failed" ||
+      booking.paymentLastEvent === "checkout_expired"
+    ) {
+      return {
+        status: "create_new",
+        session,
+        url: "",
+        message: "",
+      };
+    }
+
+    return {
+      status: "processing",
+      session,
+      url: "",
+      message: booking.paymentLastError || CHECKOUT_PROCESSING_MESSAGE,
+    };
+  } catch (error) {
+    console.error("resolveExistingCheckoutSession failed", {
+      bookingId: booking.id,
+      paymentReference,
+      error,
+    });
+
+    return {
+      status: "create_new",
+      session: null,
+      url: "",
+      message: "",
+    };
+  }
 }
 
 export async function handleBookingCheckoutPost(bookingId) {
@@ -168,6 +337,47 @@ export async function handleBookingCheckoutPost(bookingId) {
       };
     }
 
+    const existingSessionState = await resolveExistingCheckoutSession(
+      checkoutData,
+      stripe,
+    );
+
+    if (existingSessionState.status === "reuse_existing") {
+      return {
+        status: 200,
+        body: {
+          url: existingSessionState.url,
+        },
+      };
+    }
+
+    if (existingSessionState.status === "already_paid") {
+      return {
+        status: 409,
+        body: {
+          message: existingSessionState.message,
+        },
+      };
+    }
+
+    if (existingSessionState.status === "processing") {
+      return {
+        status: 409,
+        body: {
+          message: existingSessionState.message,
+        },
+      };
+    }
+
+    if (existingSessionState.status === "unavailable") {
+      return {
+        status: 503,
+        body: {
+          message: existingSessionState.message,
+        },
+      };
+    }
+
     try {
       const session = await stripe.checkout.sessions.create(
         {
@@ -202,7 +412,7 @@ export async function handleBookingCheckoutPost(bookingId) {
           ],
         },
         {
-          idempotencyKey: `booking-checkout-${checkoutData.booking.id}`,
+          idempotencyKey: buildCheckoutIdempotencyKey(checkoutData.booking),
         },
       );
 
@@ -215,6 +425,15 @@ export async function handleBookingCheckoutPost(bookingId) {
           },
         };
       }
+
+      await recordBookingPaymentCheckpoint(checkoutData.booking.id, {
+        paymentProvider: "stripe",
+        paymentReference: session.id,
+        paymentIntentId: getStripeObjectId(session.payment_intent),
+        paymentLastEvent: "checkout_created",
+        paymentLastError: "",
+        occurredAt: getStripeTimestamp(session.created),
+      });
 
       return {
         status: 200,
@@ -320,6 +539,73 @@ export async function syncBookingPaymentFromCheckoutSession({
   }
 }
 
+export async function syncTravelerPendingBookingPayments(travelerId = "") {
+  if (!travelerId || !hasBookingPaymentEnv()) {
+    return {
+      status: "skipped",
+      syncedCount: 0,
+      failedCount: 0,
+    };
+  }
+
+  const stripe = getStripeClient();
+
+  if (!stripe) {
+    return {
+      status: "skipped",
+      syncedCount: 0,
+      failedCount: 0,
+    };
+  }
+
+  const candidates = await getTravelerStripePaymentRecoveryCandidates(travelerId);
+
+  if (!candidates.length) {
+    return {
+      status: "idle",
+      syncedCount: 0,
+      failedCount: 0,
+    };
+  }
+
+  let syncedCount = 0;
+  let failedCount = 0;
+
+  for (const candidate of candidates) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(
+        candidate.paymentReference,
+      );
+      const result = await markSessionBookingAsPaid(session, travelerId);
+
+      if (result.status === "updated" || result.status === "already_paid") {
+        syncedCount += 1;
+        continue;
+      }
+
+      if (session.status === "expired") {
+        await recordCheckoutSessionState(candidate.bookingId, session, {
+          paymentLastEvent: "checkout_expired",
+          paymentLastError: "Your previous payment session expired before payment completed.",
+        });
+      }
+    } catch (error) {
+      failedCount += 1;
+      console.error("syncTravelerPendingBookingPayments failed", {
+        bookingId: candidate.bookingId,
+        paymentReference: candidate.paymentReference,
+        error,
+      });
+    }
+  }
+
+  return {
+    status: syncedCount ? "updated" : failedCount ? "partial" : "idle",
+    syncedCount,
+    failedCount,
+  };
+}
+
 export async function handleStripeWebhook(request) {
   if (!hasBookingPaymentEnv() || !hasStripeWebhookEnv()) {
     return {
@@ -389,6 +675,45 @@ export async function handleStripeWebhook(request) {
         reason: result.reason,
       });
     }
+  }
+
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object;
+    const bookingId =
+      session.metadata?.bookingId || session.client_reference_id || "";
+
+    await recordCheckoutSessionState(bookingId, session, {
+      paymentLastEvent: "payment_failed",
+      paymentLastError:
+        "Stripe reported that the asynchronous payment did not complete.",
+    });
+  }
+
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object;
+    const bookingId =
+      session.metadata?.bookingId || session.client_reference_id || "";
+
+    await recordCheckoutSessionState(bookingId, session, {
+      paymentLastEvent: "checkout_expired",
+      paymentLastError:
+        "The Stripe checkout session expired before payment completed.",
+    });
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    const paymentIntent = event.data.object;
+    const bookingId = paymentIntent.metadata?.bookingId || "";
+
+    await recordBookingPaymentCheckpoint(bookingId, {
+      paymentProvider: "stripe",
+      paymentIntentId: paymentIntent.id || "",
+      paymentLastEvent: "payment_failed",
+      paymentLastError:
+        paymentIntent.last_payment_error?.message ||
+        "Stripe reported that the payment intent failed.",
+      occurredAt: getStripeTimestamp(event.created),
+    });
   }
 
   return {

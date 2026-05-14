@@ -4,14 +4,21 @@ import {
   hasBookingPaymentEnv,
   hasSupabasePublicEnv,
 } from "@/src/backend/config/env";
+import { isBookingInvoiceAccessTokenValid } from "@/src/backend/invoices/booking-invoice-access";
 import { getFallbackRoomImages } from "@/src/backend/repositories/demo-fallback-repository";
 
 const BLOCKING_BOOKING_STATUSES = ["pending", "confirmed"];
-const TRAVELER_BOOKING_COLUMNS =
-  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at";
+const LEGACY_TRAVELER_BOOKING_COLUMNS =
+  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at, updated_at";
+const TRACKED_TRAVELER_BOOKING_COLUMNS =
+  "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, payment_provider, payment_reference, payment_intent_id, payment_paid_at, payment_last_event, payment_last_event_at, payment_last_error, notes, created_at, updated_at";
 const TRAVELER_ROOM_COLUMNS = "id, hotel_id, name, room_type, image_urls";
 const TRAVELER_HOTEL_COLUMNS = "id, name, city, address, contact_email";
 const TRAVELER_PROFILE_COLUMNS = "full_name, email";
+const STRIPE_PAYMENT_PROVIDER = "stripe";
+const MAX_STRIPE_RECOVERY_CANDIDATES = 8;
+
+let bookingsPaymentColumnsAvailable = null;
 
 function getUnavailableBookingsState(reason) {
   return {
@@ -19,6 +26,110 @@ function getUnavailableBookingsState(reason) {
     bookings: [],
     reason,
   };
+}
+
+function isMissingBookingPaymentColumnError(error) {
+  return (
+    error?.code === "42703" &&
+    String(error.message || "").includes("bookings.payment_")
+  );
+}
+
+function getTravelerBookingColumns(paymentColumnsAvailable) {
+  return paymentColumnsAvailable === false
+    ? LEGACY_TRAVELER_BOOKING_COLUMNS
+    : TRACKED_TRAVELER_BOOKING_COLUMNS;
+}
+
+function normalizeBookingRow(row) {
+  return {
+    ...row,
+    payment_provider: row?.payment_provider || "",
+    payment_reference: row?.payment_reference || "",
+    payment_intent_id: row?.payment_intent_id || "",
+    payment_paid_at: row?.payment_paid_at || "",
+    payment_last_event: row?.payment_last_event || "",
+    payment_last_event_at: row?.payment_last_event_at || "",
+    payment_last_error: row?.payment_last_error || "",
+  };
+}
+
+async function detectBookingPaymentColumnsAvailability(client) {
+  if (bookingsPaymentColumnsAvailable !== null) {
+    return bookingsPaymentColumnsAvailable;
+  }
+
+  const { error } = await client.from("bookings").select("payment_provider").limit(1);
+
+  if (!error) {
+    bookingsPaymentColumnsAvailable = true;
+    return bookingsPaymentColumnsAvailable;
+  }
+
+  if (isMissingBookingPaymentColumnError(error)) {
+    bookingsPaymentColumnsAvailable = false;
+    return bookingsPaymentColumnsAvailable;
+  }
+
+  return null;
+}
+
+async function runBookingQueryWithCompatibility(client, buildQuery) {
+  const detectedAvailability = await detectBookingPaymentColumnsAvailability(client);
+  const initialColumns = getTravelerBookingColumns(detectedAvailability);
+  const initialResult = await buildQuery(client.from("bookings"), initialColumns);
+
+  if (!initialResult.error) {
+    if (detectedAvailability === null) {
+      bookingsPaymentColumnsAvailable = true;
+    }
+
+    return {
+      ...initialResult,
+      paymentColumnsAvailable: bookingsPaymentColumnsAvailable !== false,
+    };
+  }
+
+  if (!isMissingBookingPaymentColumnError(initialResult.error)) {
+    return {
+      ...initialResult,
+      paymentColumnsAvailable: detectedAvailability !== false,
+    };
+  }
+
+  bookingsPaymentColumnsAvailable = false;
+
+  const fallbackResult = await buildQuery(
+    client.from("bookings"),
+    LEGACY_TRAVELER_BOOKING_COLUMNS,
+  );
+
+  return {
+    ...fallbackResult,
+    paymentColumnsAvailable: false,
+  };
+}
+
+function toIsoTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+
+  if (typeof value === "number") {
+    const timestamp =
+      value > 1_000_000_000_000
+        ? new Date(value)
+        : new Date(value * 1000);
+
+    return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
+  }
+
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
 }
 
 function getTravelerBookingPaymentState(row) {
@@ -29,9 +140,18 @@ function getTravelerBookingPaymentState(row) {
   if (paymentStatus === "paid") {
     return {
       canPayOnline: false,
-      paymentActionMessage: row.payment_method
-        ? `Payment received via ${row.payment_method}.`
-        : "Payment received.",
+      paymentActionMessage: row.payment_paid_at
+        ? `Payment received${row.payment_method ? ` via ${row.payment_method}` : ""} on ${new Intl.DateTimeFormat(
+            "en-US",
+            {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            },
+          ).format(new Date(row.payment_paid_at))}.`
+        : row.payment_method
+          ? `Payment received via ${row.payment_method}.`
+          : "Payment received.",
     };
   }
 
@@ -64,6 +184,31 @@ function getTravelerBookingPaymentState(row) {
     };
   }
 
+  if (row.payment_last_event === "payment_failed") {
+    return {
+      canPayOnline: true,
+      paymentActionMessage:
+        row.payment_last_error ||
+        "Your last payment attempt did not complete. You can try secure payment again.",
+    };
+  }
+
+  if (row.payment_last_event === "checkout_expired") {
+    return {
+      canPayOnline: true,
+      paymentActionMessage:
+        "Your previous payment session expired. Start a fresh secure payment when you're ready.",
+    };
+  }
+
+  if (row.payment_reference) {
+    return {
+      canPayOnline: true,
+      paymentActionMessage:
+        "A secure payment session already exists for this booking. If you already paid, the latest status will sync back here automatically.",
+    };
+  }
+
   if (totalPrice <= 0) {
     return {
       canPayOnline: false,
@@ -86,26 +231,34 @@ function getTravelerBookingPaymentState(row) {
   };
 }
 
-function mapTravelerBooking(row, room, hotel) {
+function mapTravelerBooking(row, room, hotel, paymentColumnsAvailable = true) {
   const uploadedImages = room?.image_urls || [];
   const roomName = room?.name || room?.room_type || "Booked room";
-  const paymentState = getTravelerBookingPaymentState(row);
+  const safeRow = normalizeBookingRow(row);
+  const paymentState = getTravelerBookingPaymentState(safeRow);
 
   return {
-    _id: row.id,
-    checkInDate: row.check_in_date,
-    checkOutDate: row.check_out_date,
-    guests: row.guests,
-    totalPrice: Number(row.total_price || 0),
-    status: row.status || "pending",
-    paymentStatus: row.payment_status || "unpaid",
-    paymentMethod: row.payment_method || "",
+    _id: safeRow.id,
+    checkInDate: safeRow.check_in_date,
+    checkOutDate: safeRow.check_out_date,
+    guests: safeRow.guests,
+    totalPrice: Number(safeRow.total_price || 0),
+    status: safeRow.status || "pending",
+    paymentStatus: safeRow.payment_status || "unpaid",
+    paymentMethod: safeRow.payment_method || "",
+    paymentProvider: safeRow.payment_provider || "",
+    paymentReference: safeRow.payment_reference || "",
+    paymentIntentId: safeRow.payment_intent_id || "",
+    paymentPaidAt: safeRow.payment_paid_at || "",
+    paymentLastEvent: safeRow.payment_last_event || "",
+    paymentLastEventAt: safeRow.payment_last_event_at || "",
+    paymentLastError: safeRow.payment_last_error || "",
     canPayOnline: paymentState.canPayOnline,
     paymentActionMessage: paymentState.paymentActionMessage,
-    notes: row.notes || "",
-    createdAt: row.created_at,
+    notes: safeRow.notes || "",
+    createdAt: safeRow.created_at,
     room: {
-      _id: room?.id || row.room_id || "",
+      _id: room?.id || safeRow.room_id || "",
       name: roomName,
       roomType: room?.room_type || roomName,
       images: uploadedImages.length ? uploadedImages : getFallbackRoomImages(),
@@ -135,7 +288,7 @@ function buildBookingNotificationContext({
 }) {
   const roomName = getRoomDisplayName(roomRow);
   const mergedBooking = {
-    ...bookingRow,
+    ...normalizeBookingRow(bookingRow),
     ...bookingOverrides,
   };
 
@@ -160,6 +313,7 @@ function buildBookingNotificationContext({
     },
     booking: {
       id: mergedBooking.id,
+      userId: mergedBooking.user_id || "",
       checkInDate: mergedBooking.check_in_date,
       checkOutDate: mergedBooking.check_out_date,
       guests: mergedBooking.guests,
@@ -167,9 +321,33 @@ function buildBookingNotificationContext({
       status: mergedBooking.status || "pending",
       paymentStatus: mergedBooking.payment_status || "unpaid",
       paymentMethod: mergedBooking.payment_method || "",
+      paymentProvider: mergedBooking.payment_provider || "",
+      paymentReference: mergedBooking.payment_reference || "",
+      paymentIntentId: mergedBooking.payment_intent_id || "",
+      paymentPaidAt: mergedBooking.payment_paid_at || "",
       notes: mergedBooking.notes || "",
     },
   };
+}
+
+function getInvoiceIssuedAt(row) {
+  return (
+    row?.payment_paid_at ||
+    row?.updated_at ||
+    row?.created_at ||
+    new Date().toISOString()
+  );
+}
+
+function getBookingInvoiceNumber(row) {
+  const issuedDate = new Date(getInvoiceIssuedAt(row));
+  const year = issuedDate.getUTCFullYear();
+  const month = `${issuedDate.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${issuedDate.getUTCDate()}`.padStart(2, "0");
+
+  return `QS-${year}${month}${day}-${String(row?.id || "")
+    .slice(0, 8)
+    .toUpperCase()}`;
 }
 
 async function getCurrentTravelerProfile(readClient, userId) {
@@ -191,6 +369,145 @@ async function getCurrentTravelerProfile(readClient, userId) {
     return data || null;
   } catch {
     return null;
+  }
+}
+
+export async function getTravelerStripePaymentRecoveryCandidates(travelerId) {
+  if (!travelerId) {
+    return [];
+  }
+
+  const adminClient = createSupabaseAdminClient();
+
+  if (!adminClient) {
+    return [];
+  }
+
+  try {
+    const paymentColumnsAvailable =
+      await detectBookingPaymentColumnsAvailability(adminClient);
+
+    if (paymentColumnsAvailable === false) {
+      return [];
+    }
+
+    const { data, error } = await adminClient
+      .from("bookings")
+      .select(
+        "id, user_id, payment_reference, payment_intent_id, payment_last_event, payment_status, status",
+      )
+      .eq("user_id", travelerId)
+      .eq("payment_status", "unpaid")
+      .eq("status", "confirmed")
+      .eq("payment_provider", STRIPE_PAYMENT_PROVIDER)
+      .not("payment_reference", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(MAX_STRIPE_RECOVERY_CANDIDATES);
+
+    if (error) {
+      console.error("getTravelerStripePaymentRecoveryCandidates failed", error);
+      return [];
+    }
+
+    return (data || [])
+      .filter((booking) => Boolean(booking.payment_reference))
+      .map((booking) => ({
+        bookingId: booking.id,
+        travelerId: booking.user_id || "",
+        paymentReference: booking.payment_reference || "",
+        paymentIntentId: booking.payment_intent_id || "",
+        paymentLastEvent: booking.payment_last_event || "",
+      }));
+  } catch (error) {
+    console.error("getTravelerStripePaymentRecoveryCandidates threw", error);
+    return [];
+  }
+}
+
+export async function recordBookingPaymentCheckpoint(
+  bookingId,
+  options = {},
+) {
+  if (!bookingId) {
+    return false;
+  }
+
+  const adminClient = createSupabaseAdminClient();
+
+  if (!adminClient) {
+    return false;
+  }
+
+  const paymentColumnsAvailable =
+    await detectBookingPaymentColumnsAvailability(adminClient);
+
+  if (paymentColumnsAvailable === false) {
+    return false;
+  }
+
+  const updatePayload = {};
+
+  if ("paymentProvider" in options) {
+    updatePayload.payment_provider =
+      options.paymentProvider || STRIPE_PAYMENT_PROVIDER;
+  }
+
+  if ("paymentReference" in options) {
+    updatePayload.payment_reference = options.paymentReference || null;
+  }
+
+  if ("paymentIntentId" in options) {
+    updatePayload.payment_intent_id = options.paymentIntentId || null;
+  }
+
+  if ("paymentPaidAt" in options) {
+    updatePayload.payment_paid_at = toIsoTimestamp(options.paymentPaidAt);
+  }
+
+  if ("paymentLastEvent" in options) {
+    updatePayload.payment_last_event = options.paymentLastEvent || null;
+    updatePayload.payment_last_event_at =
+      toIsoTimestamp(options.occurredAt) || new Date().toISOString();
+  }
+
+  if ("paymentLastError" in options) {
+    updatePayload.payment_last_error = options.paymentLastError || null;
+    if (!("paymentLastEvent" in options)) {
+      updatePayload.payment_last_event_at =
+        toIsoTimestamp(options.occurredAt) || new Date().toISOString();
+    }
+  }
+
+  if (!Object.keys(updatePayload).length) {
+    return false;
+  }
+
+  try {
+    const { error } = await adminClient
+      .from("bookings")
+      .update(updatePayload)
+      .eq("id", bookingId);
+
+    if (error) {
+      if (isMissingBookingPaymentColumnError(error)) {
+        bookingsPaymentColumnsAvailable = false;
+        return false;
+      }
+
+      console.error("recordBookingPaymentCheckpoint failed", {
+        bookingId,
+        error,
+      });
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("recordBookingPaymentCheckpoint threw", {
+      bookingId,
+      error,
+    });
+    return false;
   }
 }
 
@@ -272,11 +589,16 @@ export async function getBookings() {
   }
 
   const readClient = createSupabaseAdminClient() || supabase;
-  const { data: bookingRows, error: bookingsError } = await readClient
-    .from("bookings")
-    .select(TRAVELER_BOOKING_COLUMNS)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const {
+    data: bookingRows,
+    error: bookingsError,
+    paymentColumnsAvailable,
+  } = await runBookingQueryWithCompatibility(readClient, (query, columns) =>
+    query
+      .select(columns)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+  );
 
   if (bookingsError) {
     return getUnavailableBookingsState(
@@ -331,7 +653,12 @@ export async function getBookings() {
     bookings: bookings.map((booking) => {
       const room = roomMap.get(booking.room_id) || null;
       const hotel = room ? hotelMap.get(room.hotel_id) || null : null;
-      return mapTravelerBooking(booking, room, hotel);
+      return mapTravelerBooking(
+        booking,
+        room,
+        hotel,
+        paymentColumnsAvailable !== false,
+      );
     }),
     reason: "",
   };
@@ -402,12 +729,17 @@ export async function getTravelerBookingCheckoutData(bookingId) {
     };
   }
 
-  const { data: bookingRow, error: bookingError } = await readClient
-    .from("bookings")
-    .select(TRAVELER_BOOKING_COLUMNS)
-    .eq("id", bookingId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const {
+    data: bookingRow,
+    error: bookingError,
+    paymentColumnsAvailable,
+  } = await runBookingQueryWithCompatibility(readClient, (query, columns) =>
+    query
+      .select(columns)
+      .eq("id", bookingId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  );
 
   if (bookingError) {
     return {
@@ -497,17 +829,23 @@ export async function getTravelerBookingCheckoutData(bookingId) {
   }
 
   const travelerProfile = await getCurrentTravelerProfile(readClient, user.id);
+  const safeBookingRow = normalizeBookingRow(bookingRow);
 
   return {
     status: "ready",
     booking: {
-      id: bookingRow.id,
-      userId: bookingRow.user_id,
-      checkInDate: bookingRow.check_in_date,
-      checkOutDate: bookingRow.check_out_date,
-      totalPrice: Number(bookingRow.total_price || 0),
-      status: bookingRow.status,
-      paymentStatus: bookingRow.payment_status,
+      id: safeBookingRow.id,
+      userId: safeBookingRow.user_id,
+      checkInDate: safeBookingRow.check_in_date,
+      checkOutDate: safeBookingRow.check_out_date,
+      totalPrice: Number(safeBookingRow.total_price || 0),
+      status: safeBookingRow.status,
+      paymentStatus: safeBookingRow.payment_status,
+      paymentTrackingAvailable: paymentColumnsAvailable !== false,
+      paymentReference: safeBookingRow.payment_reference || "",
+      paymentIntentId: safeBookingRow.payment_intent_id || "",
+      paymentLastEvent: safeBookingRow.payment_last_event || "",
+      paymentLastError: safeBookingRow.payment_last_error || "",
     },
     traveler: {
       email: travelerProfile?.email || user.email || "",
@@ -530,6 +868,200 @@ export async function getTravelerBookingCheckoutData(bookingId) {
   };
 }
 
+export async function getTravelerBookingInvoiceData(
+  bookingId,
+  { accessToken = "" } = {},
+) {
+  if (!bookingId) {
+    return {
+      status: "not_found",
+      invoice: null,
+      reason: "We could not find that QuickStay invoice.",
+    };
+  }
+
+  const adminClient = createSupabaseAdminClient();
+
+  if (!adminClient) {
+    return {
+      status: "unavailable",
+      invoice: null,
+      reason: "Trusted invoice access is temporarily unavailable right now.",
+    };
+  }
+
+  let viewerUser = null;
+
+  try {
+    const serverClient = await createSupabaseServerClient();
+
+    if (serverClient) {
+      const {
+        data: { user },
+      } = await serverClient.auth.getUser();
+
+      viewerUser = user || null;
+    }
+  } catch {}
+
+  const { data: bookingRow, error: bookingError } =
+    await runBookingQueryWithCompatibility(adminClient, (query, columns) =>
+      query.select(columns).eq("id", bookingId).maybeSingle(),
+    );
+
+  if (bookingError) {
+    return {
+      status: "unavailable",
+      invoice: null,
+      reason:
+        bookingError.message ||
+        "We could not load this invoice right now.",
+    };
+  }
+
+  if (!bookingRow) {
+    return {
+      status: "not_found",
+      invoice: null,
+      reason: "We could not find that QuickStay invoice.",
+    };
+  }
+
+  const safeBookingRow = normalizeBookingRow(bookingRow);
+  const viewerOwnsBooking = viewerUser?.id === safeBookingRow.user_id;
+  const hasSignedInvoiceAccess = Boolean(
+    accessToken &&
+      isBookingInvoiceAccessTokenValid(
+        safeBookingRow.id,
+        safeBookingRow.user_id,
+        accessToken,
+      ),
+  );
+
+  if (!viewerOwnsBooking && !hasSignedInvoiceAccess) {
+    if (accessToken) {
+      return {
+        status: "forbidden",
+        invoice: null,
+        reason:
+          "This invoice link is no longer valid. Please open the latest invoice from QuickStay.",
+      };
+    }
+
+    if (!viewerUser) {
+      return {
+        status: "unauthenticated",
+        invoice: null,
+        reason: "Please log in to open this invoice.",
+      };
+    }
+
+    return {
+      status: "forbidden",
+      invoice: null,
+      reason: "This invoice is not available in the current traveler account.",
+    };
+  }
+
+  const { data: roomRow, error: roomError } = await adminClient
+    .from("rooms")
+    .select("id, hotel_id, name, room_type")
+    .eq("id", safeBookingRow.room_id)
+    .maybeSingle();
+
+  if (roomError || !roomRow) {
+    return {
+      status: "unavailable",
+      invoice: null,
+      reason:
+        roomError?.message ||
+        "We could not load the room details for this invoice right now.",
+    };
+  }
+
+  const { data: hotelRow, error: hotelError } = await adminClient
+    .from("hotels")
+    .select("id, name, city, address, contact_email")
+    .eq("id", roomRow.hotel_id)
+    .maybeSingle();
+
+  if (hotelError || !hotelRow) {
+    return {
+      status: "unavailable",
+      invoice: null,
+      reason:
+        hotelError?.message ||
+        "We could not load the hotel details for this invoice right now.",
+    };
+  }
+
+  const travelerProfile = await getCurrentTravelerProfile(
+    adminClient,
+    safeBookingRow.user_id,
+  );
+  const nightCount = Math.max(
+    1,
+    getNightCount(safeBookingRow.check_in_date, safeBookingRow.check_out_date),
+  );
+  const unitPrice = Number(safeBookingRow.total_price || 0) / nightCount;
+  const issuedAt = getInvoiceIssuedAt(safeBookingRow);
+
+  return {
+    status: "ready",
+    invoice: {
+      bookingId: safeBookingRow.id,
+      invoiceNumber: getBookingInvoiceNumber(safeBookingRow),
+      issuedAt,
+      stayLabel: roomRow.name || roomRow.room_type || "Booked room",
+      nightCount,
+      unitPrice,
+      totalPrice: Number(safeBookingRow.total_price || 0),
+      status: safeBookingRow.status || "pending",
+      paymentStatus: safeBookingRow.payment_status || "unpaid",
+      paymentMethod: safeBookingRow.payment_method || "",
+      paymentPaidAt: issuedAt,
+      paymentReference: safeBookingRow.payment_reference || "",
+      notes: safeBookingRow.notes || "",
+      traveler: {
+        fullName:
+          travelerProfile?.full_name ||
+          viewerUser?.user_metadata?.full_name ||
+          viewerUser?.user_metadata?.name ||
+          "",
+        email: travelerProfile?.email || viewerUser?.email || "",
+      },
+      room: {
+        id: roomRow.id,
+        name: roomRow.name || roomRow.room_type || "Booked room",
+        roomType: roomRow.room_type || roomRow.name || "Booked room",
+      },
+      hotel: {
+        id: hotelRow.id,
+        name: hotelRow.name || "Hotel unavailable",
+        city: hotelRow.city || "",
+        address: hotelRow.address || "",
+        contactEmail: hotelRow.contact_email || "",
+      },
+      booking: {
+        checkInDate: safeBookingRow.check_in_date,
+        checkOutDate: safeBookingRow.check_out_date,
+        guests: safeBookingRow.guests || 0,
+        createdAt: safeBookingRow.created_at,
+      },
+      lineItems: [
+        {
+          label: roomRow.name || roomRow.room_type || "Booked room",
+          description: `${nightCount} night${nightCount === 1 ? "" : "s"} at ${hotelRow.name || "QuickStay"}`,
+          quantity: nightCount,
+          unitPrice,
+          total: Number(safeBookingRow.total_price || 0),
+        },
+      ],
+    },
+    reason: "",
+  };
+}
+
 export async function getBookingNotificationContext(bookingId, options = {}) {
   const adminClient = createSupabaseAdminClient();
 
@@ -541,11 +1073,10 @@ export async function getBookingNotificationContext(bookingId, options = {}) {
     };
   }
 
-  const { data: bookingRow, error: bookingError } = await adminClient
-    .from("bookings")
-    .select(TRAVELER_BOOKING_COLUMNS)
-    .eq("id", bookingId)
-    .maybeSingle();
+  const { data: bookingRow, error: bookingError } =
+    await runBookingQueryWithCompatibility(adminClient, (query, columns) =>
+      query.select(columns).eq("id", bookingId).maybeSingle(),
+    );
 
   if (bookingError) {
     return {
@@ -829,6 +1360,9 @@ export async function createBookingRecord(payload) {
   const totalPrice = Number(roomRow.price_per_night) * nightCount;
   const travelerProfile = await getCurrentTravelerProfile(supabase, user.id);
   const roomName = getRoomDisplayName(roomRow);
+  const paymentColumnsAvailable =
+    await detectBookingPaymentColumnsAvailability(supabase);
+  const bookingSelectColumns = getTravelerBookingColumns(paymentColumnsAvailable);
 
   const { data: bookingRow, error: bookingError } = await supabase
     .from("bookings")
@@ -843,12 +1377,19 @@ export async function createBookingRecord(payload) {
       payment_status: "unpaid",
       notes: payload.notes || null,
     })
-    .select(
-      "id, room_id, user_id, check_in_date, check_out_date, guests, total_price, status, payment_status, payment_method, notes, created_at",
-    )
+    .select(bookingSelectColumns)
     .single();
 
   if (bookingError) {
+    if (bookingError.code === "23P01") {
+      return {
+        status: "conflict",
+        booking: null,
+        reason:
+          "These dates are no longer available for this room. Please choose a different stay window.",
+      };
+    }
+
     return {
       status: "unavailable",
       booking: null,
@@ -858,18 +1399,20 @@ export async function createBookingRecord(payload) {
     };
   }
 
+  const safeBookingRow = normalizeBookingRow(bookingRow);
+
   return {
     status: "created",
     booking: {
-      _id: bookingRow.id,
-      checkInDate: bookingRow.check_in_date,
-      checkOutDate: bookingRow.check_out_date,
-      guests: bookingRow.guests,
-      totalPrice: Number(bookingRow.total_price || 0),
-      status: bookingRow.status,
-      paymentStatus: bookingRow.payment_status,
-      createdAt: bookingRow.created_at,
-      notes: bookingRow.notes || "",
+      _id: safeBookingRow.id,
+      checkInDate: safeBookingRow.check_in_date,
+      checkOutDate: safeBookingRow.check_out_date,
+      guests: safeBookingRow.guests,
+      totalPrice: Number(safeBookingRow.total_price || 0),
+      status: safeBookingRow.status,
+      paymentStatus: safeBookingRow.payment_status,
+      createdAt: safeBookingRow.created_at,
+      notes: safeBookingRow.notes || "",
       room: {
         _id: roomRow.id,
         name: roomName,
@@ -901,7 +1444,17 @@ export async function createBookingRecord(payload) {
   };
 }
 
-export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
+export async function markBookingAsPaid(
+  bookingId,
+  {
+    paymentMethod = STRIPE_PAYMENT_PROVIDER,
+    paymentProvider = STRIPE_PAYMENT_PROVIDER,
+    paymentReference = "",
+    paymentIntentId = "",
+    paymentPaidAt = null,
+    paymentLastEvent = "payment_received",
+  } = {},
+) {
   const adminClient = createSupabaseAdminClient();
 
   if (!adminClient) {
@@ -912,11 +1465,13 @@ export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
     };
   }
 
-  const { data: bookingRow, error: bookingError } = await adminClient
-    .from("bookings")
-    .select(TRAVELER_BOOKING_COLUMNS)
-    .eq("id", bookingId)
-    .maybeSingle();
+  const {
+    data: bookingRow,
+    error: bookingError,
+    paymentColumnsAvailable,
+  } = await runBookingQueryWithCompatibility(adminClient, (query, columns) =>
+    query.select(columns).eq("id", bookingId).maybeSingle(),
+  );
 
   if (bookingError) {
     return {
@@ -936,19 +1491,25 @@ export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
     };
   }
 
-  if (bookingRow.payment_status === "paid") {
+  const safeBookingRow = normalizeBookingRow(bookingRow);
+
+  if (safeBookingRow.payment_status === "paid") {
     return {
       status: "already_paid",
       booking: {
-        _id: bookingRow.id,
-        paymentStatus: bookingRow.payment_status,
-        paymentMethod: bookingRow.payment_method || paymentMethod,
+        _id: safeBookingRow.id,
+        paymentStatus: safeBookingRow.payment_status,
+        paymentMethod: safeBookingRow.payment_method || paymentMethod,
+        paymentProvider: safeBookingRow.payment_provider || paymentProvider,
+        paymentReference: safeBookingRow.payment_reference || paymentReference,
+        paymentIntentId: safeBookingRow.payment_intent_id || paymentIntentId,
+        paymentPaidAt: safeBookingRow.payment_paid_at || "",
       },
       reason: "",
     };
   }
 
-  if (bookingRow.status !== "confirmed") {
+  if (safeBookingRow.status !== "confirmed") {
     return {
       status: "not_payable",
       booking: null,
@@ -956,16 +1517,30 @@ export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
     };
   }
 
+  const supportsTrackedPaymentColumns = paymentColumnsAvailable !== false;
+  const updatePayload = {
+    payment_status: "paid",
+    payment_method: paymentMethod || "stripe",
+  };
+
+  if (supportsTrackedPaymentColumns) {
+    updatePayload.payment_provider = paymentProvider || null;
+    updatePayload.payment_reference = paymentReference || null;
+    updatePayload.payment_intent_id = paymentIntentId || null;
+    updatePayload.payment_paid_at =
+      toIsoTimestamp(paymentPaidAt) || new Date().toISOString();
+    updatePayload.payment_last_event = paymentLastEvent || "payment_received";
+    updatePayload.payment_last_event_at = new Date().toISOString();
+    updatePayload.payment_last_error = null;
+  }
+
   const { data: updatedRow, error: updateError } = await adminClient
     .from("bookings")
-    .update({
-      payment_status: "paid",
-      payment_method: paymentMethod || "stripe",
-    })
+    .update(updatePayload)
     .eq("id", bookingId)
     .eq("status", "confirmed")
     .eq("payment_status", "unpaid")
-    .select(TRAVELER_BOOKING_COLUMNS)
+    .select(getTravelerBookingColumns(paymentColumnsAvailable))
     .maybeSingle();
 
   if (updateError) {
@@ -979,19 +1554,23 @@ export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
   }
 
   if (!updatedRow) {
-    const { data: latestRow } = await adminClient
-      .from("bookings")
-      .select(TRAVELER_BOOKING_COLUMNS)
-      .eq("id", bookingId)
-      .maybeSingle();
+    const { data: latestRow } = await runBookingQueryWithCompatibility(
+      adminClient,
+      (query, columns) => query.select(columns).eq("id", bookingId).maybeSingle(),
+    );
+    const safeLatestRow = latestRow ? normalizeBookingRow(latestRow) : null;
 
-    if (latestRow?.payment_status === "paid") {
+    if (safeLatestRow?.payment_status === "paid") {
       return {
         status: "already_paid",
         booking: {
-          _id: latestRow.id,
-          paymentStatus: latestRow.payment_status,
-          paymentMethod: latestRow.payment_method || paymentMethod,
+          _id: safeLatestRow.id,
+          paymentStatus: safeLatestRow.payment_status,
+          paymentMethod: safeLatestRow.payment_method || paymentMethod,
+          paymentProvider: safeLatestRow.payment_provider || paymentProvider,
+          paymentReference: safeLatestRow.payment_reference || paymentReference,
+          paymentIntentId: safeLatestRow.payment_intent_id || paymentIntentId,
+          paymentPaidAt: safeLatestRow.payment_paid_at || "",
         },
         reason: "",
       };
@@ -1004,12 +1583,18 @@ export async function markBookingAsPaid(bookingId, paymentMethod = "stripe") {
     };
   }
 
+  const safeUpdatedRow = normalizeBookingRow(updatedRow);
+
   return {
     status: "updated",
     booking: {
-      _id: updatedRow.id,
-      paymentStatus: updatedRow.payment_status,
-      paymentMethod: updatedRow.payment_method || paymentMethod,
+      _id: safeUpdatedRow.id,
+      paymentStatus: safeUpdatedRow.payment_status,
+      paymentMethod: safeUpdatedRow.payment_method || paymentMethod,
+      paymentProvider: safeUpdatedRow.payment_provider || paymentProvider,
+      paymentReference: safeUpdatedRow.payment_reference || paymentReference,
+      paymentIntentId: safeUpdatedRow.payment_intent_id || paymentIntentId,
+      paymentPaidAt: safeUpdatedRow.payment_paid_at || "",
     },
     reason: "",
   };
