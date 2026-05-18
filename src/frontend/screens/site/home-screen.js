@@ -77,7 +77,7 @@ function RatingStars({ rating }) {
 }
 
 function getInventoryStaySignals(snapshot) {
-  if (snapshot.source !== "real") {
+  if (snapshot.source === "fallback") {
     return fallbackStaySignals;
   }
 
@@ -118,13 +118,20 @@ export async function HomeScreen() {
           description:
             "These featured stays reflect the rooms guests can currently explore, making the first impression feel timely and trustworthy.",
         }
-      : {
-          eyebrow: "Featured stays",
-          title:
-            "Popular rooms for city breaks, short work trips, and easy weekend escapes",
-          description:
-            "These highlighted stays give the home page a strong first impression while keeping room discovery simple and visually consistent.",
-        };
+      : inventorySnapshot.source === "fallback"
+        ? {
+            eyebrow: "Featured stays",
+            title:
+              "Popular rooms for city breaks, short work trips, and easy weekend escapes",
+            description:
+              "These highlighted stays give the home page a strong first impression while keeping room discovery simple and visually consistent.",
+          }
+        : {
+            eyebrow: "Public inventory",
+            title: "No live rooms are published yet",
+            description:
+              "Publish the hotel and open at least one room from the owner workspace to make the live stay collection appear here.",
+          };
 
   return (
     <div className="home-canvas">
@@ -142,17 +149,47 @@ export async function HomeScreen() {
             <p className="mt-5 inline-flex rounded-full bg-[var(--color-accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)]">
               Ready to book now
             </p>
-          ) : null}
+          ) : inventorySnapshot.source === "fallback" ? (
+            <p className="mt-5 inline-flex rounded-full bg-[rgba(255,247,232,0.96)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-ink)] ring-1 ring-[rgba(220,190,144,0.92)]">
+              Preview inventory
+            </p>
+          ) : (
+            <p className="mt-5 inline-flex rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-strong)] ring-1 ring-[var(--color-line)]">
+              Waiting for first published room
+            </p>
+          )}
 
-          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {featuredRooms.map((room, index) => (
-              <HotelCard
-                key={room._id}
-                room={room}
-                featuredLabel={featuredLabels[index] || "Featured stay"}
-              />
-            ))}
-          </div>
+          {featuredRooms.length ? (
+            <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {featuredRooms.map((room, index) => (
+                <HotelCard
+                  key={room._id}
+                  room={room}
+                  featuredLabel={featuredLabels[index] || "Featured stay"}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="surface-card mt-12 rounded-[32px] p-8 text-center">
+              <p className="eyebrow-label justify-center">Visibility check</p>
+              <h3 className="mt-4 font-display text-3xl text-[var(--color-ink)]">
+                The live room collection is still empty
+              </h3>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-8 text-[var(--color-muted)]">
+                Travelers will see rooms here after the hotel is published from
+                `/owner/setup-hotel` and at least one room is opened from
+                `/owner/list-room`.
+              </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link href="/host" className="button-primary min-h-11 px-5">
+                  Open owner workspace
+                </Link>
+                <Link href="/rooms" className="button-secondary min-h-11 px-5">
+                  Visit rooms page
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

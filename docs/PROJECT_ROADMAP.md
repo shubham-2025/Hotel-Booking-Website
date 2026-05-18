@@ -80,7 +80,7 @@
 
 - Seed `hotels`, `rooms`, `profiles` and `bookings`.
 - Replace remaining dummy UI reads with Supabase queries.
-- Home page featured stays now prefer live active public inventory, while demo content remains only as a safe backup.
+- Home page featured stays now prefer live active public inventory, while demo content remains only as a safe backup when live inventory cannot be read. Empty or unpublished live inventory no longer masquerades as demo stock.
 - Add owner-specific queries for only that owner’s hotels and rooms.
 
 ### Phase 3: Auth and roles

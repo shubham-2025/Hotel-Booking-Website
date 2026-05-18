@@ -11,7 +11,11 @@ const priceOptions = [
   { label: "$350+", value: "premium", range: [351, 10000] },
 ];
 
-export function RoomsBrowser({ rooms, initialCity = "" }) {
+export function RoomsBrowser({
+  rooms,
+  initialCity = "",
+  inventorySource = "real",
+}) {
   const [selectedType, setSelectedType] = useState("");
   const [selectedPrice, setSelectedPrice] = useState("");
   const [sortBy, setSortBy] = useState("price-asc");
@@ -58,6 +62,7 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
     });
 
   const hasActiveFilters = Boolean(selectedType || selectedPrice);
+  const hasLiveInventory = inventorySource !== "empty";
 
   function resetFilters() {
     setSelectedType("");
@@ -207,22 +212,29 @@ export function RoomsBrowser({ rooms, initialCity = "" }) {
           <div className="surface-card rounded-[30px] p-8 text-center">
             <p className="eyebrow-label justify-center">No matches yet</p>
             <h3 className="mt-4 font-display text-3xl text-[var(--color-ink)]">
-              Try widening your filters
+              {hasLiveInventory ? "Try widening your filters" : "No public rooms are live yet"}
             </h3>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[var(--color-muted)]">
-              We could not find a room that matches the current combination. A
-              broader price range or another room type should bring options back.
+              {hasLiveInventory
+                ? "We could not find a room that matches the current combination. A broader price range or another room type should bring options back."
+                : "Rooms appear here only after the hotel is published from the owner workspace and at least one room is opened to guests."}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="button-primary"
-              >
-                Clear filters
-              </button>
+              {hasLiveInventory ? (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="button-primary"
+                >
+                  Clear filters
+                </button>
+              ) : (
+                <Link href="/host" className="button-primary">
+                  Open owner workspace
+                </Link>
+              )}
               <Link href="/" className="button-secondary">
-                Start a new search
+                {hasLiveInventory ? "Start a new search" : "Back home"}
               </Link>
             </div>
           </div>

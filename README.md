@@ -231,6 +231,12 @@ Create `.env.local` from `.env.example`.
 | `STRIPE_SECRET_KEY` | Stripe Checkout | Server-side Stripe secret |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification | Validates webhook payloads |
 
+Notes:
+
+- On Vercel, QuickStay can also read `SUPABASE_URL` and `SUPABASE_ANON_KEY` as server-side fallbacks when the Supabase integration syncs those aliases.
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` remain the recommended canonical variable names, especially if you later introduce browser-side Supabase reads.
+- If `NEXT_PUBLIC_SITE_URL` is not set on Vercel, QuickStay now falls back to `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` for auth redirects and email links.
+
 ## Local Setup
 
 ### Prerequisites

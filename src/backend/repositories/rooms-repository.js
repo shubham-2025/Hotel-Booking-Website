@@ -77,16 +77,24 @@ function mapSupabaseRoom(row, hotel) {
   };
 }
 
-async function getRealPublicRooms(filters = {}) {
+async function getRealPublicRooms() {
   if (!hasSupabasePublicEnv()) {
-    return [];
+    return {
+      status: "fallback",
+      reason: "missing_env",
+      rooms: [],
+    };
   }
 
   try {
     const supabase = await createSupabaseServerClient();
 
     if (!supabase) {
-      return [];
+      return {
+        status: "fallback",
+        reason: "client_unavailable",
+        rooms: [],
+      };
     }
 
     const { data: hotelData, error: hotelError } = await supabase
@@ -101,7 +109,11 @@ async function getRealPublicRooms(filters = {}) {
     const activeHotels = hotelData || [];
 
     if (!activeHotels.length) {
-      return [];
+      return {
+        status: "ready",
+        reason: "",
+        rooms: [],
+      };
     }
 
     const activeHotelMap = new Map(activeHotels.map((hotel) => [hotel.id, hotel]));
@@ -119,21 +131,31 @@ async function getRealPublicRooms(filters = {}) {
       throw error;
     }
 
-    return applyRoomFilters(
-      (data || [])
-      .map((row) => {
-        const hotel = activeHotelMap.get(row.hotel_id);
-        return hotel ? mapSupabaseRoom(row, hotel) : null;
-      })
-      .filter(Boolean),
-      filters,
-    );
+    return {
+      status: "ready",
+      reason: "",
+      rooms: (data || [])
+        .map((row) => {
+          const hotel = activeHotelMap.get(row.hotel_id);
+          return hotel ? mapSupabaseRoom(row, hotel) : null;
+        })
+        .filter(Boolean),
+    };
   } catch {
-    return [];
+    return {
+      status: "fallback",
+      reason: "query_failed",
+      rooms: [],
+    };
   }
 }
 
-function buildPublicRoomInventorySnapshot(roomCollection, source, limit = 4) {
+function buildPublicRoomInventorySnapshot(
+  roomCollection,
+  source,
+  limit = 4,
+  metadata = {},
+) {
   const cityNames = [...new Set(roomCollection.map((room) => room.hotel.city))];
   const hotelIds = new Set(roomCollection.map((room) => room.hotel._id));
   const averageNightlyRate = roomCollection.length
@@ -160,6 +182,8 @@ function buildPublicRoomInventorySnapshot(roomCollection, source, limit = 4) {
 
   return {
     source,
+    inventoryReason: metadata.inventoryReason || "",
+    liveRoomCount: metadata.liveRoomCount || 0,
     rooms: roomCollection,
     featuredRooms,
     totalPublicRooms: roomCollection.length,
@@ -174,16 +198,35 @@ export async function getPublicRoomInventorySnapshot({
   filters = {},
   limit = 4,
 } = {}) {
-  const realRooms = await getRealPublicRooms(filters);
+  const inventory = await getRealPublicRooms();
 
-  if (realRooms.length) {
-    return buildPublicRoomInventorySnapshot(realRooms, "real", limit);
+  if (inventory.status === "ready") {
+    const filteredRealRooms = applyRoomFilters(inventory.rooms, filters);
+
+    return buildPublicRoomInventorySnapshot(
+      filteredRealRooms,
+      inventory.rooms.length ? "real" : "empty",
+      limit,
+      {
+        inventoryReason: inventory.rooms.length
+          ? ""
+          : "No public rooms are live yet. Publish the hotel and at least one room to make inventory visible to travelers.",
+        liveRoomCount: inventory.rooms.length,
+      },
+    );
   }
 
   return buildPublicRoomInventorySnapshot(
     getFilteredFallbackRooms(filters),
     "fallback",
     limit,
+    {
+      inventoryReason:
+        inventory.reason === "missing_env"
+          ? "Live inventory is unavailable because the Supabase public environment is not configured."
+          : "Live inventory is temporarily unavailable, so demo rooms are shown instead.",
+      liveRoomCount: 0,
+    },
   );
 }
 

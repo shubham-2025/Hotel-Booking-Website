@@ -1,7 +1,50 @@
+function normalizeAbsoluteUrl(value) {
+  const trimmedValue = String(value || "").trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  if (
+    trimmedValue.startsWith("http://") ||
+    trimmedValue.startsWith("https://")
+  ) {
+    return trimmedValue.replace(/\/$/, "");
+  }
+
+  return `https://${trimmedValue.replace(/\/$/, "")}`;
+}
+
+function resolveSiteUrl() {
+  return (
+    normalizeAbsoluteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
+    normalizeAbsoluteUrl(process.env.SITE_URL) ||
+    normalizeAbsoluteUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeAbsoluteUrl(process.env.VERCEL_URL) ||
+    "http://localhost:3000"
+  );
+}
+
+function resolveSupabaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    ""
+  );
+}
+
+function resolveSupabaseAnonKey() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    ""
+  );
+}
+
 export const env = {
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+  siteUrl: resolveSiteUrl(),
+  supabaseUrl: resolveSupabaseUrl(),
+  supabaseAnonKey: resolveSupabaseAnonKey(),
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
   smtpHost: process.env.SMTP_HOST || "",

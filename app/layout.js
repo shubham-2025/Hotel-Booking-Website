@@ -1,6 +1,7 @@
 import { Montserrat } from "next/font/google";
 import { NavigationLoader } from "@/src/frontend/components/feedback/navigation-loader.client";
 import { AppToaster } from "@/src/frontend/components/feedback/app-toaster.client";
+import { env } from "@/src/backend/config/env";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -11,9 +12,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-  ),
+  metadataBase: new URL(env.siteUrl),
   title: {
     default: "QuickStay | Hotel Booking Platform",
     template: "%s | QuickStay",

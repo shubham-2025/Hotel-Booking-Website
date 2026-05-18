@@ -1,10 +1,36 @@
 import { RoomsBrowser } from "@/src/frontend/features/rooms/rooms-browser.client";
-import { getRooms } from "@/lib/data";
+import { getPublicRoomInventorySnapshot } from "@/lib/data";
+
+function InventoryNotice({ source, message }) {
+  if (!message || (source !== "fallback" && source !== "empty")) {
+    return null;
+  }
+
+  const isFallback = source === "fallback";
+
+  return (
+    <div
+      className={`mt-8 rounded-[28px] border px-5 py-4 text-sm leading-7 shadow-[var(--shadow-soft)] ${
+        isFallback
+          ? "border-[rgba(220,190,144,0.9)] bg-[rgba(255,247,232,0.96)] text-[var(--color-ink)]"
+          : "border-[rgba(188,208,229,0.9)] bg-white/96 text-[var(--color-muted)]"
+      }`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-strong)]">
+        {isFallback ? "Preview inventory" : "Live inventory pending"}
+      </p>
+      <p className="mt-2">{message}</p>
+    </div>
+  );
+}
 
 export async function RoomsScreen({ searchParams }) {
   const params = await searchParams;
   const initialCity = params?.city || "";
-  const roomData = await getRooms({ city: initialCity });
+  const inventorySnapshot = await getPublicRoomInventorySnapshot({
+    filters: { city: initialCity },
+  });
+  const roomData = inventorySnapshot.rooms;
 
   return (
     <section className="section-space">
@@ -46,8 +72,17 @@ export async function RoomsScreen({ searchParams }) {
           </div>
         </div>
 
+        <InventoryNotice
+          source={inventorySnapshot.source}
+          message={inventorySnapshot.inventoryReason}
+        />
+
         <div className="mt-8">
-          <RoomsBrowser rooms={roomData} initialCity={initialCity} />
+          <RoomsBrowser
+            rooms={roomData}
+            initialCity={initialCity}
+            inventorySource={inventorySnapshot.source}
+          />
         </div>
       </div>
     </section>
